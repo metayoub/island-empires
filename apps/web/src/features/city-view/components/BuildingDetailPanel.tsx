@@ -2,6 +2,8 @@ import type {
   ActiveConstructionSummary,
   BuildingVisualState,
   CityViewBuilding,
+  CitizenSummary,
+  PopulationSummary,
   ResourceBalance,
 } from '@island-empires/shared-types';
 import { Link } from 'react-router-dom';
@@ -12,6 +14,7 @@ import { Panel } from '../../../components/ui/Panel';
 import { Timer } from '../../../components/ui/Timer';
 import { BarracksTrainingPanel } from '../../barracks/components/BarracksTrainingPanel';
 import { BuildingUpgradeCost } from '../../city/components/BuildingUpgradeCost';
+import { WorkerAssignmentControls } from '../../city/components/WorkerAssignmentPanel';
 import { SpyAgencyPanel } from '../../scouting/components/SpyAgencyPanel';
 import { TradingPostPanel } from '../../trading-post/TradingPostPanel';
 import { formatDuration, getUpgradeButtonState } from '../city-view.utils';
@@ -27,6 +30,12 @@ type BuildingDetailProps = {
   onUpgrade: (buildingType: string) => void;
   onTimerComplete: () => void;
   onClose?: () => void;
+  workerAssignment?: {
+    cityId: string;
+    population: PopulationSummary;
+    citizens: CitizenSummary;
+    academyLevel: number;
+  };
 };
 
 const STATE_LABELS: Record<BuildingVisualState, string> = {
@@ -64,10 +73,13 @@ export function BuildingDetailBody({
   upgradeErrorMessage,
   onUpgrade,
   onTimerComplete,
+  workerAssignment,
 }: BuildingDetailProps) {
   const buttonState = getUpgradeButtonState(building, resources, activeConstruction, isPending);
   const isFuture = building.visualState === 'disabled';
   const showUpgradeDetails = !isFuture && building.visualState !== 'max_level';
+  const showWorkerAssignment =
+    building.type === 'city_hall' && building.level > 0 && workerAssignment;
 
   return (
     <div className="space-y-4">
@@ -131,6 +143,20 @@ export function BuildingDetailBody({
         <BarracksTrainingPanel mode="shipyard" />
       ) : null}
       {building.type === 'spy_agency' && building.level > 0 ? <SpyAgencyPanel /> : null}
+      {showWorkerAssignment ? (
+        <div className="space-y-3 rounded-md border border-border bg-surface/70 p-3">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-wide text-muted">
+              Worker Assignment
+            </p>
+            <p className="mt-1 text-sm font-semibold text-muted">
+              Current population: {workerAssignment.population.current} /{' '}
+              {workerAssignment.population.capacity}
+            </p>
+          </div>
+          <WorkerAssignmentControls {...workerAssignment} layout="compact" />
+        </div>
+      ) : null}
       {upgradeErrorMessage ? <Alert variant="danger">{upgradeErrorMessage}</Alert> : null}
     </div>
   );

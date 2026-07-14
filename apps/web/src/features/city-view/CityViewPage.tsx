@@ -93,6 +93,8 @@ export function CityViewPage() {
   }
 
   const overview = cityOverviewQuery.data;
+  const academyLevel =
+    overview.buildings.find((building) => building.type === 'academy')?.level ?? 0;
 
   if (viewBuildings.length === 0) {
     return (
@@ -112,6 +114,12 @@ export function CityViewPage() {
         upgradeErrorMessage: upgradeMutation.isError ? upgradeMutation.error.message : null,
         onUpgrade: (buildingType: string) => upgradeMutation.mutate(buildingType),
         onTimerComplete: refetchCityState,
+        workerAssignment: {
+          cityId: overview.city.id,
+          population: overview.population,
+          citizens: overview.citizens,
+          academyLevel,
+        },
       }
     : null;
 

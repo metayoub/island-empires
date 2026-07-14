@@ -10,6 +10,7 @@ type WorkerAssignmentPanelProps = {
   population: PopulationSummary;
   citizens: CitizenSummary;
   academyLevel: number;
+  layout?: 'default' | 'compact';
 };
 
 export function WorkerAssignmentPanel({
@@ -17,6 +18,28 @@ export function WorkerAssignmentPanel({
   population,
   citizens,
   academyLevel,
+}: WorkerAssignmentPanelProps) {
+  return (
+    <Panel
+      title="Worker Assignment"
+      subtitle={`Current population: ${population.current} / ${population.capacity}`}
+    >
+      <WorkerAssignmentControls
+        cityId={cityId}
+        population={population}
+        citizens={citizens}
+        academyLevel={academyLevel}
+      />
+    </Panel>
+  );
+}
+
+export function WorkerAssignmentControls({
+  cityId,
+  population,
+  citizens,
+  academyLevel,
+  layout = 'default',
 }: WorkerAssignmentPanelProps) {
   const queryClient = useQueryClient();
   const [woodWorkers, setWoodWorkers] = useState(citizens.woodWorkers);
@@ -68,28 +91,28 @@ export function WorkerAssignmentPanel({
   }
 
   return (
-    <Panel
-      title="Worker Assignment"
-      subtitle={`Current population: ${population.current} / ${population.capacity}`}
-    >
-      <div className="grid gap-4 sm:grid-cols-5">
+    <div className="space-y-4">
+      <div className={layout === 'compact' ? 'space-y-2' : 'grid gap-4 sm:grid-cols-5'}>
         <WorkerStepper
           label="Wood workers"
           value={woodWorkers}
           onDecrease={() => adjustWoodWorkers(-1)}
           onIncrease={() => adjustWoodWorkers(1)}
+          layout={layout}
         />
         <WorkerStepper
           label="Gold workers"
           value={goldWorkers}
           onDecrease={() => adjustGoldWorkers(-1)}
           onIncrease={() => adjustGoldWorkers(1)}
+          layout={layout}
         />
         <WorkerStepper
           label="Luxury workers"
           value={luxuryWorkers}
           onDecrease={() => adjustLuxuryWorkers(-1)}
           onIncrease={() => adjustLuxuryWorkers(1)}
+          layout={layout}
         />
         <WorkerStepper
           label="Scientists"
@@ -97,11 +120,28 @@ export function WorkerAssignmentPanel({
           onDecrease={() => adjustScientists(-1)}
           onIncrease={() => adjustScientists(1)}
           disabled={!academyAvailable}
+          layout={layout}
         />
-        <div className="rounded-md border border-border bg-surface/70 px-3 py-3 text-center shadow-inner">
-          <p className="text-[11px] font-black uppercase tracking-wide text-muted">Idle citizens</p>
+        <div
+          className={
+            layout === 'compact'
+              ? 'flex min-h-12 items-center justify-between gap-3 rounded-md border border-border bg-surface/70 px-3 py-2 shadow-inner'
+              : 'rounded-md border border-border bg-surface/70 px-3 py-3 text-center shadow-inner'
+          }
+        >
           <p
-            className={`mt-1 text-xl font-black ${isOverPopulation ? 'text-danger' : 'text-text'}`}
+            className={
+              layout === 'compact'
+                ? 'text-xs font-black uppercase text-muted'
+                : 'text-[11px] font-black uppercase tracking-wide text-muted'
+            }
+          >
+            Idle citizens
+          </p>
+          <p
+            className={`${layout === 'compact' ? 'text-lg' : 'mt-1 text-xl'} font-black ${
+              isOverPopulation ? 'text-danger' : 'text-text'
+            }`}
           >
             {idleCitizens}
           </p>
@@ -131,10 +171,11 @@ export function WorkerAssignmentPanel({
       <Button
         onClick={() => mutation.mutate()}
         disabled={isOverPopulation || !hasChanges || mutation.isPending}
+        className={layout === 'compact' ? 'w-full justify-center' : ''}
       >
         {mutation.isPending ? 'Saving...' : 'Save assignment'}
       </Button>
-    </Panel>
+    </div>
   );
 }
 
@@ -144,9 +185,48 @@ type WorkerStepperProps = {
   onDecrease: () => void;
   onIncrease: () => void;
   disabled?: boolean;
+  layout?: 'default' | 'compact';
 };
 
-function WorkerStepper({ label, value, onDecrease, onIncrease, disabled }: WorkerStepperProps) {
+function WorkerStepper({
+  label,
+  value,
+  onDecrease,
+  onIncrease,
+  disabled,
+  layout = 'default',
+}: WorkerStepperProps) {
+  if (layout === 'compact') {
+    return (
+      <div
+        className={`flex min-h-14 items-center justify-between gap-3 rounded-md border border-border bg-surface/70 px-3 py-2 shadow-inner ${disabled ? 'opacity-50' : ''}`}
+      >
+        <p className="min-w-0 flex-1 text-xs font-black uppercase text-muted">{label}</p>
+        <div className="grid grid-cols-[2rem_2.25rem_2rem] items-center gap-1">
+          <button
+            type="button"
+            onClick={onDecrease}
+            disabled={disabled}
+            className="flex h-8 w-8 items-center justify-center rounded border border-border bg-surface text-sm font-black text-primary transition-colors hover:bg-surface-strong disabled:cursor-not-allowed disabled:text-muted"
+            aria-label={`Decrease ${label}`}
+          >
+            -
+          </button>
+          <span className="text-center text-lg font-black text-text">{value}</span>
+          <button
+            type="button"
+            onClick={onIncrease}
+            disabled={disabled}
+            className="flex h-8 w-8 items-center justify-center rounded border border-border bg-surface text-sm font-black text-primary transition-colors hover:bg-surface-strong disabled:cursor-not-allowed disabled:text-muted"
+            aria-label={`Increase ${label}`}
+          >
+            +
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`rounded-md border border-border bg-surface/70 px-3 py-3 text-center shadow-inner ${disabled ? 'opacity-50' : ''}`}

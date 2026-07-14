@@ -7,11 +7,12 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders, setSelectedCity } from '../../test/renderWithProviders';
-import { getCityOverview, startBuildingUpgrade } from '../city/city.api';
+import { assignWorkers, getCityOverview, startBuildingUpgrade } from '../city/city.api';
 import { triggerCityBuildingClicked } from './city-view.api';
 import { CityViewPage } from './CityViewPage';
 
 vi.mock('../city/city.api', () => ({
+  assignWorkers: vi.fn(),
   getCityOverview: vi.fn(),
   startBuildingUpgrade: vi.fn(),
 }));
@@ -154,8 +155,27 @@ describe('CityViewPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setSelectedCity('city-1');
-    vi.mocked(getCityOverview).mockResolvedValue(buildOverview());
+    const overview = buildOverview();
+    vi.mocked(getCityOverview).mockResolvedValue(overview);
     vi.mocked(startBuildingUpgrade).mockResolvedValue({} as StartBuildingUpgradeResponse);
+    vi.mocked(assignWorkers).mockResolvedValue({
+      workers: {
+        woodWorkers: 11,
+        goldWorkers: 5,
+        luxuryWorkers: 0,
+        scientists: 2,
+        idleCitizens: 42,
+      },
+      citizens: {
+        woodWorkers: 11,
+        goldWorkers: 5,
+        luxuryWorkers: 0,
+        scientists: 2,
+        idleCitizens: 42,
+      },
+      production: overview.production,
+      research: overview.research,
+    });
     vi.mocked(triggerCityBuildingClicked).mockResolvedValue({ currentQuest: null, quests: [] });
   });
 
@@ -212,6 +232,26 @@ describe('CityViewPage', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Upgrade' }));
 
     expect(startBuildingUpgrade).toHaveBeenCalledWith('city-1', 'warehouse');
+  });
+
+  it('updates worker assignment from the City Hall details', async () => {
+    renderWithProviders(<CityViewPage />);
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Open City Hall details, level 2' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Worker Assignment')).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Increase Wood workers' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save assignment' }));
+
+    expect(assignWorkers).toHaveBeenCalledWith('city-1', {
+      woodWorkers: 11,
+      goldWorkers: 5,
+      luxuryWorkers: 0,
+      scientists: 2,
+    });
   });
 
   it('shows the construction overlay and blocks other upgrades while the queue is busy', async () => {
