@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "world": {
+    "slug": "alpha",
+    "name": "Alpha World",
+    "speedMultiplier": 1.0,
+    "offlineProductionCapHours": 12,
+    "starterCity": {
+      "name": "New Haven",
+      "population": 25,
+      "happiness": 50,
+      "island": {
+        "name": "Dawn Island",
+        "x": 0,
+        "y": 0,
+        "biome": "temperate"
+      }
+    },
+    "queueLimits": {
+      "activeConstructionJobsPerCity": 1,
+      "activeResearchJobsPerPlayer": 1
+    },
+    "timing": {
+      "minimumJobDurationSeconds": 30,
+      "productionTickSeconds": 60
+    }
+  }
+}
+

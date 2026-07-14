@@ -1,0 +1,21 @@
+# Final QA Checklist
+
+- [ ] Register
+- [ ] Verify email
+- [ ] Login
+- [ ] Create first city
+- [ ] Complete tutorial
+- [ ] Produce resources
+- [ ] Upgrade building
+- [ ] Complete research
+- [ ] Send message
+- [ ] Join alliance
+- [ ] Create marketplace offer
+- [ ] Complete trade
+- [ ] Start PvE battle
+- [ ] Read report
+- [ ] Receive notification
+- [ ] Admin login
+- [ ] Admin search player
+- [ ] Admin moderate message report
+- [ ] Logout

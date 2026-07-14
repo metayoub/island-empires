@@ -1,0 +1,23 @@
+import { Controller, Get, Header } from '@nestjs/common';
+import { HealthService } from './health.service';
+
+@Controller('health')
+export class HealthController {
+  constructor(private readonly healthService: HealthService) {}
+
+  @Get()
+  getHealth() {
+    return this.healthService.getHealth();
+  }
+
+  @Get('deep')
+  getDeepHealth() {
+    return this.healthService.getDeepHealth();
+  }
+
+  @Get('metrics')
+  @Header('Content-Type', 'text/plain; version=0.0.4')
+  getMetrics() {
+    return this.healthService.getMetrics();
+  }
+}

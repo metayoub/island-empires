@@ -1,0 +1,4 @@
+interface:
+  display_name: "Empire Acceptance Guard"
+  short_description: "Enforce Empire project acceptance rules"
+  default_prompt: "Use $empire-acceptance-guard to implement Empire code while checking acceptance criteria and Definition of Done."

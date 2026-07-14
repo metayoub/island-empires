@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: #efe3cf;
+  --color-surface: #fff8e9;
+  --color-surface-strong: #ead8b8;
+  --color-primary: #2f6f73;
+  --color-primary-hover: #24585b;
+  --color-secondary: #c88a3d;
+  --color-text: #2f2a24;
+  --color-muted: #7b6f63;
+  --color-border: #d8c6a8;
+  --color-success: #3f8f5f;
+  --color-warning: #c98a2e;
+  --color-danger: #b55345;
+
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255, 248, 233, 0.92), transparent 28rem),
+    radial-gradient(circle at 86% 2%, rgba(121, 176, 174, 0.34), transparent 24rem),
+    linear-gradient(135deg, rgba(216, 198, 168, 0.28) 25%, transparent 25%) 0 0 / 34px 34px,
+    var(--color-bg);
+}
+
+@layer components {
+  .game-surface {
+    background:
+      radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.62), transparent 18rem),
+      linear-gradient(135deg, rgba(122, 88, 56, 0.035) 25%, transparent 25%) 0 0 / 18px 18px,
+      var(--color-surface);
+  }
+
+  .game-frame {
+    border: 1px solid rgba(122, 88, 56, 0.24);
+    box-shadow:
+      0 18px 38px rgba(62, 46, 30, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+
+  .soft-pulse {
+    animation: soft-pulse 1.8s ease-in-out infinite;
+  }
+
+  .wave-drift {
+    animation: wave-drift 7s ease-in-out infinite alternate;
+  }
+
+  .boat-drift {
+    animation: boat-drift 5.5s ease-in-out infinite alternate;
+  }
+
+  .flag-flutter {
+    transform-origin: left center;
+    animation: flag-flutter 1.4s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes soft-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(63, 143, 95, 0.36);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 8px rgba(63, 143, 95, 0);
+  }
+}
+
+@keyframes wave-drift {
+  from {
+    transform: translateX(-16px);
+  }
+  to {
+    transform: translateX(18px);
+  }
+}
+
+@keyframes boat-drift {
+  from {
+    transform: translateY(-4px) rotate(-1deg);
+  }
+  to {
+    transform: translateY(5px) rotate(1deg);
+  }
+}
+
+@keyframes flag-flutter {
+  from {
+    transform: skewY(-4deg) scaleX(0.95);
+  }
+  to {
+    transform: skewY(5deg) scaleX(1.04);
+  }
+}

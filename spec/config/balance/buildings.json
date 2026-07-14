@@ -1,0 +1,279 @@
+{
+  "version": 1,
+  "buildings": [
+    {
+      "id": "city_hall",
+      "name": "City Hall",
+      "category": "core",
+      "maxLevel": 5,
+      "startingLevel": 1,
+      "effects": {
+        "cityLevelEqualsBuildingLevel": true,
+        "populationCapacityByLevel": {
+          "1": 50,
+          "2": 80,
+          "3": 120,
+          "4": 170,
+          "5": 230,
+          "6": 300,
+          "7": 380,
+          "8": 470,
+          "9": 570,
+          "10": 700
+        },
+        "constructionSpeedMultiplierByLevel": {
+          "1": 1.0,
+          "2": 1.03,
+          "3": 1.06,
+          "4": 1.09,
+          "5": 1.12,
+          "6": 1.15,
+          "7": 1.18,
+          "8": 1.21,
+          "9": 1.24,
+          "10": 1.27
+        }
+      },
+      "levels": {
+        "2": {
+          "cost": { "wood": 120, "stone": 100, "food": 60 },
+          "durationSeconds": 300
+        },
+        "3": {
+          "cost": { "wood": 240, "stone": 210, "food": 120 },
+          "durationSeconds": 900
+        },
+        "4": {
+          "cost": { "wood": 420, "stone": 380, "food": 220 },
+          "durationSeconds": 1800
+        },
+        "5": {
+          "cost": { "wood": 720, "stone": 660, "food": 390 },
+          "durationSeconds": 3600
+        }
+      }
+    },
+    {
+      "id": "warehouse",
+      "name": "Warehouse",
+      "category": "economy",
+      "maxLevel": 5,
+      "startingLevel": 1,
+      "effects": {
+        "storageBonusByLevel": {
+          "1": 500,
+          "2": 1200,
+          "3": 2200,
+          "4": 3600,
+          "5": 5400,
+          "6": 7600,
+          "7": 10200,
+          "8": 13200,
+          "9": 16600,
+          "10": 20500
+        },
+        "protectedStorageBonusByLevel": {
+          "1": 100,
+          "2": 250,
+          "3": 450,
+          "4": 700,
+          "5": 1000,
+          "6": 1350,
+          "7": 1750,
+          "8": 2200,
+          "9": 2700,
+          "10": 3250
+        }
+      },
+      "levels": {
+        "2": {
+          "cost": { "wood": 90, "stone": 130 },
+          "durationSeconds": 240
+        },
+        "3": {
+          "cost": { "wood": 180, "stone": 260 },
+          "durationSeconds": 720
+        },
+        "4": {
+          "cost": { "wood": 330, "stone": 480 },
+          "durationSeconds": 1500
+        },
+        "5": {
+          "cost": { "wood": 560, "stone": 820 },
+          "durationSeconds": 3000
+        }
+      }
+    },
+    {
+      "id": "lumber_yard",
+      "name": "Lumber Yard",
+      "category": "production",
+      "maxLevel": 5,
+      "startingLevel": 1,
+      "effects": {
+        "resourceProductionPerHourByLevel": {
+          "resourceId": "wood",
+          "1": 60,
+          "2": 95,
+          "3": 140,
+          "4": 200,
+          "5": 275,
+          "6": 365,
+          "7": 470,
+          "8": 590,
+          "9": 725,
+          "10": 875
+        }
+      },
+      "levels": {
+        "2": {
+          "cost": { "wood": 80, "stone": 50 },
+          "durationSeconds": 180
+        },
+        "3": {
+          "cost": { "wood": 160, "stone": 100 },
+          "durationSeconds": 600
+        },
+        "4": {
+          "cost": { "wood": 300, "stone": 190 },
+          "durationSeconds": 1200
+        },
+        "5": {
+          "cost": { "wood": 520, "stone": 330 },
+          "durationSeconds": 2400
+        }
+      }
+    },
+    {
+      "id": "quarry",
+      "name": "Quarry",
+      "category": "production",
+      "maxLevel": 5,
+      "startingLevel": 1,
+      "effects": {
+        "resourceProductionPerHourByLevel": {
+          "resourceId": "stone",
+          "1": 45,
+          "2": 75,
+          "3": 115,
+          "4": 165,
+          "5": 230,
+          "6": 310,
+          "7": 405,
+          "8": 515,
+          "9": 640,
+          "10": 780
+        }
+      },
+      "levels": {
+        "2": {
+          "cost": { "wood": 100, "stone": 40 },
+          "durationSeconds": 210
+        },
+        "3": {
+          "cost": { "wood": 200, "stone": 90 },
+          "durationSeconds": 660
+        },
+        "4": {
+          "cost": { "wood": 360, "stone": 170 },
+          "durationSeconds": 1320
+        },
+        "5": {
+          "cost": { "wood": 620, "stone": 300 },
+          "durationSeconds": 2640
+        }
+      }
+    },
+    {
+      "id": "farm",
+      "name": "Farm",
+      "category": "production",
+      "maxLevel": 5,
+      "startingLevel": 1,
+      "effects": {
+        "resourceProductionPerHourByLevel": {
+          "resourceId": "food",
+          "1": 55,
+          "2": 90,
+          "3": 135,
+          "4": 195,
+          "5": 270,
+          "6": 360,
+          "7": 465,
+          "8": 585,
+          "9": 720,
+          "10": 870
+        }
+      },
+      "levels": {
+        "2": {
+          "cost": { "wood": 70, "stone": 40 },
+          "durationSeconds": 180
+        },
+        "3": {
+          "cost": { "wood": 140, "stone": 90 },
+          "durationSeconds": 540
+        },
+        "4": {
+          "cost": { "wood": 260, "stone": 170 },
+          "durationSeconds": 1080
+        },
+        "5": {
+          "cost": { "wood": 460, "stone": 300 },
+          "durationSeconds": 2160
+        }
+      }
+    },
+    {
+      "id": "academy",
+      "name": "Academy",
+      "category": "research",
+      "maxLevel": 4,
+      "startingLevel": 0,
+      "effects": {
+        "knowledgeProductionPerHourByLevel": {
+          "1": 20,
+          "2": 35,
+          "3": 55,
+          "4": 80,
+          "5": 110,
+          "6": 145,
+          "7": 185,
+          "8": 230,
+          "9": 280,
+          "10": 340
+        },
+        "researchSpeedMultiplierByLevel": {
+          "1": 1.0,
+          "2": 1.04,
+          "3": 1.08,
+          "4": 1.12,
+          "5": 1.16,
+          "6": 1.2,
+          "7": 1.24,
+          "8": 1.28,
+          "9": 1.32,
+          "10": 1.36
+        }
+      },
+      "levels": {
+        "1": {
+          "cost": { "wood": 160, "stone": 140, "gold": 40 },
+          "durationSeconds": 600
+        },
+        "2": {
+          "cost": { "wood": 300, "stone": 260, "gold": 80 },
+          "durationSeconds": 1200
+        },
+        "3": {
+          "cost": { "wood": 560, "stone": 480, "gold": 150 },
+          "durationSeconds": 2400
+        },
+        "4": {
+          "cost": { "wood": 980, "stone": 860, "gold": 280 },
+          "durationSeconds": 4800
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+-- Sprint 19 PvP Combat V1 uses existing generic gameplay tables:
+-- Movement for pvp_attack/pvp_return travel, Report for attacker/defender battle reports,
+-- CityUnit for casualties/returns, CityResource/ResourceTransaction for loot,
+-- and GameAnalyticsEvent for anti-abuse logging. No schema change is required.

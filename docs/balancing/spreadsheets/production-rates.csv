@@ -1,0 +1,8 @@
+source,resource,rate_per_hour
+base,wood,30
+base,gold,20
+worker,wood,5
+worker,gold,3
+worker,luxury,4
+default_day_1_assignment,wood,55
+default_day_1_assignment,gold,35

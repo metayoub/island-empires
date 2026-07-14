@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: island_empires_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: island_empires
+    ports:
+      - "5432:5432"
+    volumes:
+      - island_empires_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d island_empires"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: island_empires_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio
+    container_name: island_empires_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - island_empires_minio:/data
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: island_empires_mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  island_empires_pgdata:
+  island_empires_minio:

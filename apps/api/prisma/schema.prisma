@@ -1,0 +1,2311 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  passwordHash        String
+  displayName         String
+  isAdmin             Boolean   @default(false)
+  adminRole           String    @default("viewer")
+  emailVerifiedAt     DateTime?
+  termsAcceptedAt     DateTime?
+  privacyAcceptedAt   DateTime?
+  showProfile         Boolean   @default(true)
+  accountStatus       String    @default("active")
+  deletionRequestedAt DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  sessions                Session[]
+  accountRiskSignals      AccountRiskSignal[]
+  sensitiveActionAuditLogs SensitiveActionAuditLog[]
+  actionFrequencyCounters ActionFrequencyCounter[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  players                 Player[]
+  browserPushSubscriptions BrowserPushSubscription[]
+  adminRoles               AdminRole[]       @relation("AdminRoleUser")
+  adminRolesGranted        AdminRole[]       @relation("AdminRoleGrantedBy")
+  adminActionLogs         AdminActionLog[]
+  adminPlayerNotes        AdminPlayerNote[]
+  adminPlayerNotesForUser AdminPlayerNote[] @relation("AdminNoteTargetUser")
+  adminPlayerWarnings     AdminPlayerWarning[]
+  moderationActionsForUser PlayerModerationAction[] @relation("ModerationTargetUser")
+  moderationActionsByAdmin PlayerModerationAction[] @relation("ModerationAdminUser")
+  moderationActionsRevoked PlayerModerationAction[] @relation("ModerationRevokedByUser")
+  premiumPurchases        PremiumPurchase[]
+  premiumRefunds          PremiumRefund[]
+  premiumAuditLogs        PremiumAuditLog[]
+  premiumLedgerEntries    PremiumLedgerEntry[]
+  cosmeticInventoryItems  CosmeticInventoryItem[]
+  inventoryItems          UserInventoryItem[]
+  inventoryTransactions   InventoryTransaction[]
+  equippedCosmetics       EquippedCosmetic[]
+  supporterDonations      SupporterDonation[]
+  donationAuditLogs       DonationAuditLog[]
+  donationRefundRecords   DonationRefundRecord[]
+  betaInviteUsages        BetaInviteUsage[]
+  betaAllowlistUsages     BetaAllowlistUsage[]
+  betaFeedback            BetaFeedback[]
+
+  @@index([email])
+  @@index([isAdmin])
+  @@index([adminRole])
+  @@index([accountStatus])
+}
+
+model Session {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  userAgent String?
+  ipHash    String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model World {
+  id            String   @id @default(uuid())
+  name          String
+  status        String   @default("development")
+  speedBuilding Float    @default(1)
+  speedResearch Float    @default(1)
+  speedResource Float    @default(1)
+  speedTravel   Float    @default(1)
+  openedAt      DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  players                   Player[]
+  islands                   Island[]
+  cities                    City[]
+  transactions              ResourceTransaction[]
+  reports                   Report[]
+  messages                  Message[]
+  notificationDeliveries    NotificationDelivery[]
+  messageReports            MessageReport[]
+  playerBlocks              PlayerBlock[]
+  movements                 Movement[]
+  researchStates            PlayerResearchState[]
+  playerTechnologies        PlayerTechnology[]
+  researchJobs              ResearchJob[]
+  researchPointTransactions ResearchPointTransaction[]
+  questProgress             PlayerQuestProgress[]
+  onboardingStates          PlayerOnboardingState[]
+  pveCamps                  PveCamp[]
+  playerPveCampProgress     PlayerPveCampProgress[]
+  unitTrainingOrders        UnitTrainingOrder[]
+  citySpyStates             CitySpyState[]
+  spyTrainingJobs           SpyTrainingJob[]
+  cityFleets                CityFleet[]
+  navalTrainingJobs         NavalTrainingJob[]
+  navalAttacks              NavalAttack[]
+  cityBlockades             CityBlockade[]
+  navalCooldowns            NavalCooldown[]
+  spyMissions               SpyMission[]
+  spyCooldowns              SpyCooldown[]
+  analyticsEvents           GameAnalyticsEvent[]
+  marketplaceOffers         MarketplaceOffer[]
+  tradeHistories            TradeHistory[]
+  suspiciousTradeLogs       SuspiciousTradeLog[]
+  alliances                 Alliance[]
+  allianceMembers           AllianceMember[]
+  allianceApplications      AllianceApplication[]
+  allianceInvitations       AllianceInvitation[]
+  allianceChatMessages      AllianceChatMessage[]
+  allianceAnnouncements     AllianceAnnouncement[]
+  allianceTreasuries        AllianceTreasury[]
+  allianceDonations         AllianceDonation[]
+  allianceProjects          AllianceProject[]
+  allianceProjectContributions AllianceProjectContribution[]
+  allianceBonuses           AllianceBonus[]
+  allianceHelpRequests      AllianceHelpRequest[]
+  allianceTradeRequests     AllianceTradeRequest[]
+  allianceSharedBattleReports AllianceSharedBattleReport[]
+  allianceActivityEntries   AllianceActivityEntry[]
+  notificationPreferences   NotificationPreference[]
+  browserPushSubscriptions  BrowserPushSubscription[]
+  liveEvents                LiveEvent[]
+  liveEventParticipations   LiveEventParticipation[]
+  playerModerations         PlayerModeration[]
+  playerModerationActions   PlayerModerationAction[]
+  abuseSignals              AbuseSignal[]
+  sensitiveActionAuditLogs  SensitiveActionAuditLog[]
+  actionFrequencyCounters   ActionFrequencyCounter[]
+  adminActionLogs           AdminActionLog[]
+  adminPlayerNotes          AdminPlayerNote[]
+  adminPlayerWarnings       AdminPlayerWarning[]
+  premiumWallets            PlayerPremiumWallet[]
+  premiumPurchases          PremiumPurchase[]
+  premiumEntitlements       PremiumEntitlement[]
+  premiumRefunds            PremiumRefund[]
+  premiumAuditLogs          PremiumAuditLog[]
+  premiumLedgerEntries      PremiumLedgerEntry[]
+  cosmeticInventoryItems    CosmeticInventoryItem[]
+  betaFeedback              BetaFeedback[]
+  betaMetricSnapshots       BetaMetricSnapshot[]
+
+  @@unique([name])
+}
+
+model Island {
+  id             String   @id @default(uuid())
+  worldId        String
+  x              Int
+  y              Int
+  name           String?
+  mainResource   String
+  luxuryResource String
+  maxSlots       Int      @default(12)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  world    World     @relation(fields: [worldId], references: [id])
+  cities   City[]
+  pveCamps PveCamp[]
+
+  @@unique([worldId, x, y])
+  @@index([worldId])
+  @@index([x, y])
+}
+
+model Player {
+  id             String   @id @default(uuid())
+  userId         String
+  worldId        String
+  name           String
+  score          Int      @default(0)
+  selectedCityId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user                      User                       @relation(fields: [userId], references: [id])
+  world                     World                      @relation(fields: [worldId], references: [id])
+  cities                    City[]
+  transactions              ResourceTransaction[]
+  reports                   Report[]
+  notificationPreference    NotificationPreference?
+  notificationDeliveries    NotificationDelivery[]
+  browserPushSubscriptions  BrowserPushSubscription[]
+  sentMessages              Message[]                  @relation("SentPlayerMessages")
+  receivedMessages          Message[]                  @relation("ReceivedPlayerMessages")
+  blockedPlayers            PlayerBlock[]              @relation("BlockedPlayers")
+  blockedByPlayers          PlayerBlock[]              @relation("BlockedPlayersTarget")
+  messageReports            MessageReport[]
+  movements                 Movement[]
+  researchState             PlayerResearchState?
+  technologies              PlayerTechnology[]
+  researchJobs              ResearchJob[]
+  researchPointTransactions ResearchPointTransaction[]
+  questProgress             PlayerQuestProgress[]
+  onboardingState           PlayerOnboardingState?
+  unitTrainingOrders        UnitTrainingOrder[]
+  citySpyStates             CitySpyState[]
+  spyTrainingJobs           SpyTrainingJob[]
+  cityFleets                CityFleet[]
+  navalTrainingJobs         NavalTrainingJob[]
+  spyMissionsAttacking      SpyMission[]        @relation("SpyMissionAttacker")
+  spyMissionsTargeted       SpyMission[]        @relation("SpyMissionTarget")
+  spyCooldowns              SpyCooldown[]
+  pveCampProgress           PlayerPveCampProgress[]
+  analyticsEvents           GameAnalyticsEvent[]
+  marketplaceOffersCreated  MarketplaceOffer[]        @relation("MarketplaceOffersCreated")
+  marketplaceOffersAccepted MarketplaceOffer[]        @relation("MarketplaceOffersAccepted")
+  allianceMembership        AllianceMember?
+  allianceApplications      AllianceApplication[]
+  allianceInvitations       AllianceInvitation[]      @relation("AllianceInvitationInvitees")
+  sentAllianceInvitations   AllianceInvitation[]      @relation("AllianceInvitationInviters")
+  allianceChatMessages      AllianceChatMessage[]
+  allianceAnnouncements     AllianceAnnouncement[]
+  allianceProjectsStarted   AllianceProject[]
+  allianceDonations         AllianceDonation[]
+  allianceProjectContributions AllianceProjectContribution[]
+  allianceBonusesUnlocked   AllianceBonus[]                 @relation("AllianceBonusUnlockedBy")
+  allianceHelpRequests      AllianceHelpRequest[]
+  allianceTradeRequests     AllianceTradeRequest[]
+  allianceSharedBattleReports AllianceSharedBattleReport[]
+  allianceActivityEntries   AllianceActivityEntry[]
+  liveEventParticipations   LiveEventParticipation[]
+  moderation                PlayerModeration?
+  moderationActions         PlayerModerationAction[]
+  abuseSignals              AbuseSignal[]
+  relatedAbuseSignals       AbuseSignal[]                  @relation("RelatedAbuseSignalPlayer")
+  accountRiskSignals        AccountRiskSignal[]
+  sensitiveActionAuditLogs  SensitiveActionAuditLog[]
+  actionFrequencyCounters   ActionFrequencyCounter[]
+  adminNotes                AdminPlayerNote[]
+  adminWarnings             AdminPlayerWarning[]
+  premiumWallet             PlayerPremiumWallet?
+  premiumPurchases          PremiumPurchase[]
+  premiumEntitlements       PremiumEntitlement[]
+  premiumAuditLogs          PremiumAuditLog[]
+  premiumLedgerEntries      PremiumLedgerEntry[]
+  cosmeticInventoryItems    CosmeticInventoryItem[]
+  inventoryItems            UserInventoryItem[]
+  inventoryTransactions     InventoryTransaction[]
+  equippedCosmetics         EquippedCosmetic[]
+  supporterDonations        SupporterDonation[]
+  donationAuditLogs         DonationAuditLog[]
+  betaInviteUsages          BetaInviteUsage[]
+  betaAllowlistUsages       BetaAllowlistUsage[]
+  betaFeedback              BetaFeedback[]
+  avatarFrame               String?
+  premiumUntil              DateTime?
+
+  @@unique([worldId, name])
+  @@index([userId])
+  @@index([worldId])
+}
+
+model City {
+  id                         String   @id @default(uuid())
+  worldId                    String
+  playerId                   String
+  islandId                   String?
+  slotIndex                  Int?
+  name                       String
+  citySkin                   String?
+  level                      Int      @default(1)
+  population                 Int      @default(50)
+  populationCapacity         Int      @default(100)
+  happiness                  Int      @default(100)
+  populationLastCalculatedAt DateTime @default(now())
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  world                World                 @relation(fields: [worldId], references: [id])
+  player               Player                @relation(fields: [playerId], references: [id])
+  island               Island?               @relation(fields: [islandId], references: [id])
+  resources            CityResource?
+  buildings            CityBuilding[]
+  workerAssignment     CityWorkerAssignment?
+  transactions         ResourceTransaction[]
+  reports              Report[]
+  notificationDeliveries NotificationDelivery[]
+  originMovements      Movement[]            @relation("OriginCityMovements")
+  destinationMovements Movement[]            @relation("DestinationCityMovements")
+  units                CityUnit[]
+  unitTrainingOrders   UnitTrainingOrder[]
+  spyState             CitySpyState?
+  spyTrainingJobs      SpyTrainingJob[]
+  fleet                CityFleet?
+  navalTrainingJobs    NavalTrainingJob[]
+  spyMissionsOrigin    SpyMission[]        @relation("SpyMissionOriginCity")
+  spyMissionsTarget    SpyMission[]        @relation("SpyMissionTargetCity")
+  marketplaceOffersCreated  MarketplaceOffer[] @relation("MarketplaceOfferCreatorCity")
+  marketplaceOffersAccepted MarketplaceOffer[] @relation("MarketplaceOfferAcceptedCity")
+  allianceDonations         AllianceDonation[]
+  allianceHelpRequests      AllianceHelpRequest[]
+  premiumEntitlements       PremiumEntitlement[]
+  equippedCosmetics         EquippedCosmetic[]
+
+  @@unique([islandId, slotIndex])
+  @@unique([playerId, name])
+  @@index([worldId])
+  @@index([playerId])
+  @@index([islandId])
+}
+
+model CityResource {
+  cityId           String   @id
+  wood             Int      @default(0)
+  gold             Int      @default(0)
+  marble           Int      @default(0)
+  wine             Int      @default(0)
+  crystal          Int      @default(0)
+  sulfur           Int      @default(0)
+  lastCalculatedAt DateTime @default(now())
+
+  city City @relation(fields: [cityId], references: [id])
+}
+
+model CityBuilding {
+  id                String    @id @default(uuid())
+  cityId            String
+  buildingType      String
+  level             Int       @default(1)
+  slotIndex         Int
+  status            String    @default("idle")
+  upgradeStartedAt  DateTime?
+  upgradeFinishesAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  city City @relation(fields: [cityId], references: [id])
+
+  @@unique([cityId, buildingType])
+  @@index([cityId])
+}
+
+model CityWorkerAssignment {
+  cityId        String   @id
+  woodWorkers   Int      @default(5)
+  goldWorkers   Int      @default(5)
+  luxuryWorkers Int      @default(0)
+  scientists    Int      @default(0)
+  idleCitizens  Int      @default(40)
+  updatedAt     DateTime @updatedAt
+
+  city City @relation(fields: [cityId], references: [id])
+}
+
+model PlayerResearchState {
+  playerId                 String   @id
+  worldId                  String
+  researchPoints           Int      @default(0)
+  researchLastCalculatedAt DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id])
+  world  World  @relation(fields: [worldId], references: [id])
+
+  @@index([worldId])
+}
+
+model PlayerTechnology {
+  id           String   @id @default(uuid())
+  playerId     String
+  worldId      String
+  technologyId String
+  status       String   @default("completed")
+  completedAt  DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id])
+  world  World  @relation(fields: [worldId], references: [id])
+
+  @@unique([playerId, technologyId])
+  @@index([worldId])
+  @@index([playerId])
+  @@index([technologyId])
+}
+
+model ResearchJob {
+  id           String    @id @default(uuid())
+  worldId      String
+  playerId     String
+  technologyId String
+  status       String    @default("active")
+  startedAt    DateTime
+  finishesAt   DateTime
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  player Player @relation(fields: [playerId], references: [id])
+  world  World  @relation(fields: [worldId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([technologyId])
+  @@index([status])
+  @@index([finishesAt])
+}
+
+model ResearchPointTransaction {
+  id              String   @id @default(uuid())
+  worldId         String
+  playerId        String
+  transactionType String
+  amount          Int
+  balanceAfter    Int
+  referenceType   String?
+  referenceId     String?
+  createdAt       DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id])
+  world  World  @relation(fields: [worldId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([transactionType])
+}
+
+model PlayerQuestProgress {
+  id          String    @id @default(uuid())
+  worldId     String
+  playerId    String
+  questId     String
+  status      String    @default("locked")
+  progress    Int       @default(0)
+  target      Int       @default(1)
+  completedAt DateTime?
+  claimedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  player Player @relation(fields: [playerId], references: [id])
+  world  World  @relation(fields: [worldId], references: [id])
+
+  @@unique([playerId, questId])
+  @@index([worldId])
+  @@index([playerId])
+  @@index([status])
+}
+
+model PlayerOnboardingState {
+  playerId             String   @id
+  worldId              String
+  hasCompletedTutorial Boolean  @default(false)
+  currentQuestId       String?
+  guideDismissed       Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  player Player @relation(fields: [playerId], references: [id])
+  world  World  @relation(fields: [worldId], references: [id])
+
+  @@index([worldId])
+}
+
+model ResourceTransaction {
+  id              String   @id @default(uuid())
+  worldId         String
+  cityId          String
+  playerId        String
+  transactionType String
+  resourceType    String
+  amount          Int
+  balanceAfter    Int
+  referenceType   String?
+  referenceId     String?
+  createdAt       DateTime @default(now())
+
+  city   City   @relation(fields: [cityId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+  world  World  @relation(fields: [worldId], references: [id])
+
+  @@index([worldId])
+  @@index([cityId])
+  @@index([playerId])
+  @@index([transactionType])
+  @@index([resourceType])
+}
+
+model Report {
+  id        String   @id @default(uuid())
+  worldId   String
+  playerId  String
+  cityId    String?
+  type      String
+  title     String
+  message   String
+  payload   Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  world  World  @relation(fields: [worldId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+  city   City?  @relation(fields: [cityId], references: [id])
+  notificationDeliveries NotificationDelivery[]
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([cityId])
+  @@index([type])
+  @@index([isRead])
+}
+
+model Message {
+  id                 String    @id @default(uuid())
+  worldId            String
+  senderPlayerId     String?
+  recipientPlayerId  String
+  messageType        String    @default("player")
+  subject            String
+  body               String
+  isReadByRecipient  Boolean   @default(false)
+  deletedBySender    Boolean   @default(false)
+  deletedByRecipient Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  readAt             DateTime?
+
+  world     World           @relation(fields: [worldId], references: [id])
+  sender    Player?         @relation("SentPlayerMessages", fields: [senderPlayerId], references: [id])
+  recipient Player          @relation("ReceivedPlayerMessages", fields: [recipientPlayerId], references: [id])
+  reports   MessageReport[]
+  notificationDeliveries NotificationDelivery[]
+
+  @@index([worldId])
+  @@index([senderPlayerId])
+  @@index([recipientPlayerId])
+  @@index([messageType])
+  @@index([isReadByRecipient])
+  @@index([createdAt])
+}
+
+model PlayerBlock {
+  id              String   @id @default(uuid())
+  worldId         String
+  blockerPlayerId String
+  blockedPlayerId String
+  reason          String?
+  createdAt       DateTime @default(now())
+
+  world   World  @relation(fields: [worldId], references: [id])
+  blocker Player @relation("BlockedPlayers", fields: [blockerPlayerId], references: [id])
+  blocked Player @relation("BlockedPlayersTarget", fields: [blockedPlayerId], references: [id])
+
+  @@unique([blockerPlayerId, blockedPlayerId])
+  @@index([worldId])
+  @@index([blockerPlayerId])
+  @@index([blockedPlayerId])
+}
+
+model MessageReport {
+  id               String    @id @default(uuid())
+  worldId          String
+  messageId        String
+  reporterPlayerId String
+  reason           String
+  status           String    @default("pending")
+  createdAt        DateTime  @default(now())
+  reviewedAt       DateTime?
+
+  world    World   @relation(fields: [worldId], references: [id])
+  message  Message @relation(fields: [messageId], references: [id])
+  reporter Player  @relation(fields: [reporterPlayerId], references: [id])
+
+  @@unique([messageId, reporterPlayerId])
+  @@index([worldId])
+  @@index([messageId])
+  @@index([reporterPlayerId])
+  @@index([status])
+}
+
+model NotificationPreference {
+  playerId              String   @id
+  worldId               String
+  inGameEnabled         Boolean  @default(true)
+  emailEnabled          Boolean  @default(false)
+  browserPushEnabled    Boolean  @default(false)
+  constructionCompleted Boolean  @default(true)
+  researchCompleted     Boolean  @default(true)
+  tradeArrived          Boolean  @default(true)
+  armyReturned          Boolean  @default(true)
+  incomingAttack        Boolean  @default(true)
+  allianceMessage       Boolean  @default(true)
+  warehouseFull         Boolean  @default(true)
+  eventEnding           Boolean  @default(true)
+  quietHoursStart       Int?
+  quietHoursEnd         Int?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  world  World  @relation(fields: [worldId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+
+  @@index([worldId])
+}
+
+model BrowserPushSubscription {
+  id        String   @id @default(uuid())
+  worldId   String
+  playerId  String
+  userId    String
+  endpoint  String   @unique
+  p256dh     String
+  auth      String
+  userAgent String?
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  world  World  @relation(fields: [worldId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([userId])
+  @@index([enabled])
+}
+
+model NotificationDelivery {
+  id          String    @id @default(uuid())
+  worldId     String
+  playerId    String
+  cityId      String?
+  reportId    String?
+  messageId   String?
+  type        String
+  channel     String
+  status      String    @default("pending")
+  title       String
+  body        String
+  scheduledAt DateTime  @default(now())
+  deliveredAt DateTime?
+  readAt      DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  world   World   @relation(fields: [worldId], references: [id])
+  player  Player  @relation(fields: [playerId], references: [id])
+  city    City?   @relation(fields: [cityId], references: [id])
+  report  Report? @relation(fields: [reportId], references: [id])
+  message Message? @relation(fields: [messageId], references: [id])
+
+  @@unique([reportId, channel])
+  @@unique([messageId, channel])
+  @@index([worldId])
+  @@index([playerId])
+  @@index([cityId])
+  @@index([type])
+  @@index([channel])
+  @@index([status])
+  @@index([archivedAt])
+  @@index([createdAt])
+}
+
+model Alliance {
+  id          String    @id @default(uuid())
+  worldId     String
+  name        String
+  tag         String
+  description String   @default("")
+  status      String   @default("active")
+  bannerCosmetic String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  world         World                  @relation(fields: [worldId], references: [id])
+  members       AllianceMember[]
+  applications  AllianceApplication[]
+  invitations   AllianceInvitation[]
+  chatMessages  AllianceChatMessage[]
+  announcements AllianceAnnouncement[]
+  treasury      AllianceTreasury?
+  donations     AllianceDonation[]
+  projects      AllianceProject[]
+  projectContributions AllianceProjectContribution[]
+  bonuses       AllianceBonus[]
+  helpRequests  AllianceHelpRequest[]
+  tradeRequests AllianceTradeRequest[]
+  sharedBattleReports AllianceSharedBattleReport[]
+  activityEntries AllianceActivityEntry[]
+  premiumEntitlements PremiumEntitlement[]
+  equippedCosmetics   EquippedCosmetic[]
+
+  @@unique([worldId, name])
+  @@unique([worldId, tag])
+  @@index([worldId])
+  @@index([status])
+}
+
+model AllianceMember {
+  id         String   @id @default(uuid())
+  worldId    String
+  allianceId String
+  playerId   String   @unique
+  role       String   @default("member")
+  contributionScore Int @default(0)
+  joinedAt   DateTime @default(now())
+
+  world    World    @relation(fields: [worldId], references: [id])
+  alliance Alliance @relation(fields: [allianceId], references: [id])
+  player   Player   @relation(fields: [playerId], references: [id])
+
+  @@unique([allianceId, playerId])
+  @@index([worldId])
+  @@index([allianceId])
+  @@index([role])
+}
+
+model AllianceTreasury {
+  allianceId String   @id
+  worldId    String
+  wood       Int      @default(0)
+  gold       Int      @default(0)
+  marble     Int      @default(0)
+  wine       Int      @default(0)
+  crystal    Int      @default(0)
+  sulfur     Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  world    World    @relation(fields: [worldId], references: [id])
+  alliance Alliance @relation(fields: [allianceId], references: [id])
+
+  @@index([worldId])
+}
+
+model AllianceDonation {
+  id         String   @id @default(uuid())
+  worldId    String
+  allianceId String
+  playerId   String
+  cityId     String
+  projectId  String?
+  wood       Int      @default(0)
+  gold       Int      @default(0)
+  marble     Int      @default(0)
+  wine       Int      @default(0)
+  crystal    Int      @default(0)
+  sulfur     Int      @default(0)
+  contributionScore Int @default(0)
+  createdAt  DateTime @default(now())
+
+  world    World    @relation(fields: [worldId], references: [id])
+  alliance Alliance @relation(fields: [allianceId], references: [id])
+  player   Player   @relation(fields: [playerId], references: [id])
+  city     City     @relation(fields: [cityId], references: [id])
+  project  AllianceProject? @relation(fields: [projectId], references: [id])
+
+  @@index([worldId])
+  @@index([allianceId])
+  @@index([playerId])
+  @@index([cityId])
+  @@index([projectId])
+  @@index([createdAt])
+}
+
+model AllianceProject {
+  id         String   @id @default(uuid())
+  worldId    String
+  allianceId String
+  projectType String
+  status     String   @default("active")
+  woodRequired Int    @default(0)
+  goldRequired Int    @default(0)
+  marbleRequired Int  @default(0)
+  wineRequired Int    @default(0)
+  crystalRequired Int @default(0)
+  sulfurRequired Int  @default(0)
+  woodContributed Int @default(0)
+  goldContributed Int @default(0)
+  marbleContributed Int @default(0)
+  wineContributed Int @default(0)
+  crystalContributed Int @default(0)
+  sulfurContributed Int @default(0)
+  startedById String
+  completedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  world    World    @relation(fields: [worldId], references: [id])
+  alliance Alliance @relation(fields: [allianceId], references: [id])
+  startedBy Player  @relation(fields: [startedById], references: [id])
+  donations AllianceDonation[]
+  contributions AllianceProjectContribution[]
+
+  @@unique([allianceId, projectType])
+  @@index([worldId])
+  @@index([allianceId])
+  @@index([status])
+  @@index([projectType])
+}
+
+model AllianceProjectContribution {
+  id         String   @id @default(uuid())
+  worldId    String
+  allianceId String
+  projectId  String
+  playerId   String
+  donationId String?
+  wood       Int      @default(0)
+  gold       Int      @default(0)
+  marble     Int      @default(0)
+  wine       Int      @default(0)
+  crystal    Int      @default(0)
+  sulfur     Int      @default(0)
+  contributionScore Int @default(0)
+  createdAt  DateTime @default(now())
+
+  world    World    @relation(fields: [worldId], references: [id])
+  alliance Alliance @relation(fields: [allianceId], references: [id])
+  project  AllianceProject @relation(fields: [projectId], references: [id])
+  player   Player   @relation(fields: [playerId], references: [id])
+
+  @@index([worldId])
+  @@index([allianceId])
+  @@index([projectId])
+  @@index([playerId])
+  @@index([donationId])
+}
+
+model AllianceBonus {
+  id         String   @id @default(uuid())
+  worldId    String
+  allianceId String
+  projectId  String?
+  bonusType  String
+  value      Int
+  unlockedById String?
+  unlockedAt DateTime @default(now())
+
+  world    World    @relation(fields: [worldId], references: [id])
+  alliance Alliance @relation(fields: [allianceId], references: [id])
+  unlockedBy Player? @relation("AllianceBonusUnlockedBy", fields: [unlockedById], references: [id])
+
+  @@unique([allianceId, bonusType])
+  @@index([worldId])
+  @@index([allianceId])
+  @@index([projectId])
+}
+
+model AllianceHelpRequest {
+  id         String   @id @default(uuid())
+  worldId    String
+  allianceId String
+  playerId   String
+  cityId     String?
+  kind       String
+  message    String
+  status     String   @default("open")
+  createdAt  DateTime @default(now())
+
+  world    World    @relation(fields: [worldId], references: [id])
+  alliance Alliance @relation(fields: [allianceId], references: [id])
+  player   Player   @relation(fields: [playerId], references: [id])
+  city     City?    @relation(fields: [cityId], references: [id])
+
+  @@index([worldId])
+  @@index([allianceId])
+  @@index([playerId])
+  @@index([status])
+}
+
+model AllianceTradeRequest {
+  id         String   @id @default(uuid())
+  worldId    String
+  allianceId String
+  playerId   String
+  offeredResource String
+  offeredAmount Int
+  requestedResource String
+  requestedAmount Int
+  message    String?
+  status     String   @default("open")
+  createdAt  DateTime @default(now())
+
+  world    World    @relation(fields: [worldId], references: [id])
+  alliance Alliance @relation(fields: [allianceId], references: [id])
+  player   Player   @relation(fields: [playerId], references: [id])
+
+  @@index([worldId])
+  @@index([allianceId])
+  @@index([playerId])
+  @@index([status])
+}
+
+model AllianceSharedBattleReport {
+  id         String   @id @default(uuid())
+  worldId    String
+  allianceId String
+  playerId   String
+  reportId   String
+  message    String?
+  createdAt  DateTime @default(now())
+
+  world    World    @relation(fields: [worldId], references: [id])
+  alliance Alliance @relation(fields: [allianceId], references: [id])
+  player   Player   @relation(fields: [playerId], references: [id])
+
+  @@index([worldId])
+  @@index([allianceId])
+  @@index([playerId])
+  @@index([reportId])
+}
+
+model AllianceActivityEntry {
+  id         String   @id @default(uuid())
+  worldId    String
+  allianceId String
+  playerId   String
+  type       String
+  message    String
+  payload    Json?
+  createdAt  DateTime @default(now())
+
+  world    World    @relation(fields: [worldId], references: [id])
+  alliance Alliance @relation(fields: [allianceId], references: [id])
+  player   Player   @relation(fields: [playerId], references: [id])
+
+  @@index([worldId])
+  @@index([allianceId])
+  @@index([playerId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model AllianceApplication {
+  id          String    @id @default(uuid())
+  worldId     String
+  allianceId  String
+  playerId    String
+  message     String?
+  status      String    @default("pending")
+  decidedById String?
+  decidedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  world    World    @relation(fields: [worldId], references: [id])
+  alliance Alliance @relation(fields: [allianceId], references: [id])
+  player   Player   @relation(fields: [playerId], references: [id])
+
+  @@unique([allianceId, playerId])
+  @@index([worldId])
+  @@index([allianceId])
+  @@index([playerId])
+  @@index([status])
+}
+
+model AllianceInvitation {
+  id              String    @id @default(uuid())
+  worldId         String
+  allianceId      String
+  inviteePlayerId String
+  invitedById     String
+  message         String?
+  status          String    @default("pending")
+  decidedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  world     World    @relation(fields: [worldId], references: [id])
+  alliance  Alliance @relation(fields: [allianceId], references: [id])
+  invitee   Player   @relation("AllianceInvitationInvitees", fields: [inviteePlayerId], references: [id])
+  invitedBy Player   @relation("AllianceInvitationInviters", fields: [invitedById], references: [id])
+
+  @@unique([allianceId, inviteePlayerId])
+  @@index([worldId])
+  @@index([allianceId])
+  @@index([inviteePlayerId])
+  @@index([status])
+}
+
+model AllianceChatMessage {
+  id         String   @id @default(uuid())
+  worldId    String
+  allianceId String
+  playerId   String
+  body       String
+  createdAt  DateTime @default(now())
+
+  world    World    @relation(fields: [worldId], references: [id])
+  alliance Alliance @relation(fields: [allianceId], references: [id])
+  player   Player   @relation(fields: [playerId], references: [id])
+
+  @@index([worldId])
+  @@index([allianceId])
+  @@index([playerId])
+  @@index([createdAt])
+}
+
+model AllianceAnnouncement {
+  id         String   @id @default(uuid())
+  worldId    String
+  allianceId String
+  playerId   String
+  title      String
+  body       String
+  createdAt  DateTime @default(now())
+
+  world    World    @relation(fields: [worldId], references: [id])
+  alliance Alliance @relation(fields: [allianceId], references: [id])
+  player   Player   @relation(fields: [playerId], references: [id])
+
+  @@index([worldId])
+  @@index([allianceId])
+  @@index([playerId])
+  @@index([createdAt])
+}
+
+model Movement {
+  id                   String    @id @default(uuid())
+  worldId              String
+  playerId             String
+  originCityId         String
+  destinationCityId    String?
+  destinationIslandId  String?
+  destinationSlotIndex Int?
+  destinationCampId    String?
+  movementType         String
+  status               String
+  departureTime        DateTime
+  arrivalTime          DateTime
+  returnArrivalTime    DateTime?
+  completedAt          DateTime?
+  payload              Json?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  world           World    @relation(fields: [worldId], references: [id])
+  player          Player   @relation(fields: [playerId], references: [id])
+  originCity      City     @relation("OriginCityMovements", fields: [originCityId], references: [id])
+  destinationCity City?    @relation("DestinationCityMovements", fields: [destinationCityId], references: [id])
+  destinationCamp PveCamp? @relation(fields: [destinationCampId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([originCityId])
+  @@index([destinationCityId])
+  @@index([destinationIslandId])
+  @@index([destinationCampId])
+  @@index([movementType])
+  @@index([status])
+  @@index([arrivalTime])
+  @@index([returnArrivalTime])
+}
+
+model PveCamp {
+  id            String   @id @default(uuid())
+  worldId       String
+  islandId      String
+  name          String
+  level         Int
+  enemyStrength Int
+  slotIndex     Int      @default(11)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  world          World                   @relation(fields: [worldId], references: [id])
+  island         Island                  @relation(fields: [islandId], references: [id])
+  movements      Movement[]
+  playerProgress PlayerPveCampProgress[]
+
+  @@unique([islandId])
+  @@index([worldId])
+  @@index([level])
+}
+
+model PlayerPveCampProgress {
+  id            String    @id @default(uuid())
+  worldId       String
+  playerId      String
+  pveCampId     String
+  victoryCount  Int       @default(0)
+  lastVictoryAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  world   World   @relation(fields: [worldId], references: [id])
+  player  Player  @relation(fields: [playerId], references: [id])
+  pveCamp PveCamp @relation(fields: [pveCampId], references: [id])
+
+  @@unique([playerId, pveCampId])
+  @@index([worldId])
+  @@index([playerId])
+  @@index([pveCampId])
+}
+
+model CityUnit {
+  id        String   @id @default(uuid())
+  cityId    String
+  unitType  String
+  quantity  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  city City @relation(fields: [cityId], references: [id])
+
+  @@unique([cityId, unitType])
+  @@index([cityId])
+}
+
+model UnitTrainingOrder {
+  id          String    @id @default(uuid())
+  worldId     String
+  playerId    String
+  cityId      String
+  unitType    String
+  quantity    Int
+  status      String    @default("active")
+  startedAt   DateTime
+  finishesAt  DateTime
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  world  World  @relation(fields: [worldId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+  city   City   @relation(fields: [cityId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([cityId])
+  @@index([status])
+  @@index([finishesAt])
+}
+
+model CityFleet {
+  id        String   @id @default(uuid())
+  worldId   String
+  playerId  String
+  cityId    String
+  lightShip Int      @default(0)
+  ramShip   Int      @default(0)
+  fireShip  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  world  World  @relation(fields: [worldId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+  city   City   @relation(fields: [cityId], references: [id])
+
+  @@unique([cityId])
+  @@index([worldId])
+  @@index([playerId])
+}
+
+model NavalTrainingJob {
+  id          String    @id @default(uuid())
+  worldId     String
+  playerId    String
+  cityId      String
+  shipType    String
+  quantity    Int
+  status      String    @default("training")
+  startedAt   DateTime
+  finishesAt  DateTime
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  world  World  @relation(fields: [worldId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+  city   City   @relation(fields: [cityId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([cityId])
+  @@index([shipType])
+  @@index([status])
+  @@index([finishesAt])
+}
+
+model NavalAttack {
+  id                      String    @id @default(uuid())
+  worldId                 String
+  attackerPlayerId        String
+  defenderPlayerId        String
+  originCityId            String
+  targetCityId            String
+  status                  String    @default("in_transit")
+  attackMovementId        String?
+  returnMovementId        String?
+  sentLightShip           Int       @default(0)
+  sentRamShip             Int       @default(0)
+  sentFireShip            Int       @default(0)
+  lostLightShip           Int       @default(0)
+  lostRamShip             Int       @default(0)
+  lostFireShip            Int       @default(0)
+  returnedLightShip       Int       @default(0)
+  returnedRamShip         Int       @default(0)
+  returnedFireShip        Int       @default(0)
+  result                  String?
+  attackerPower           Int?
+  defenderPower           Int?
+  blockadeCreated         Boolean   @default(false)
+  blockadeId              String?
+  attackerReportMessageId String?
+  defenderReportMessageId String?
+  startedAt               DateTime
+  resolvedAt              DateTime?
+  completedAt             DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  world World @relation(fields: [worldId], references: [id])
+
+  @@index([worldId])
+  @@index([attackerPlayerId])
+  @@index([defenderPlayerId])
+  @@index([originCityId])
+  @@index([targetCityId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+model CityBlockade {
+  id                 String    @id @default(uuid())
+  worldId            String
+  attackerPlayerId   String
+  defenderPlayerId   String
+  originCityId       String
+  targetCityId       String
+  navalAttackId      String?
+  status             String    @default("active")
+  startedAt          DateTime
+  endsAt             DateTime
+  endedAt            DateTime?
+  committedLightShip Int       @default(0)
+  committedRamShip   Int       @default(0)
+  committedFireShip  Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  world World @relation(fields: [worldId], references: [id])
+
+  @@index([worldId])
+  @@index([attackerPlayerId])
+  @@index([defenderPlayerId])
+  @@index([targetCityId])
+  @@index([status])
+  @@index([endsAt])
+}
+
+model NavalCooldown {
+  id               String   @id @default(uuid())
+  worldId          String
+  attackerPlayerId String
+  targetCityId     String
+  cooldownEndsAt   DateTime
+  createdAt        DateTime @default(now())
+
+  world World @relation(fields: [worldId], references: [id])
+
+  @@unique([attackerPlayerId, targetCityId])
+  @@index([worldId])
+  @@index([cooldownEndsAt])
+}
+
+model CitySpyState {
+  id        String   @id @default(uuid())
+  worldId   String
+  playerId  String
+  cityId    String
+  spies     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  world  World  @relation(fields: [worldId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+  city   City   @relation(fields: [cityId], references: [id])
+
+  @@unique([cityId])
+  @@index([worldId])
+  @@index([playerId])
+}
+
+model SpyTrainingJob {
+  id          String    @id @default(uuid())
+  worldId     String
+  playerId    String
+  cityId      String
+  quantity    Int
+  status      String    @default("training")
+  startedAt   DateTime
+  finishesAt  DateTime
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  world  World  @relation(fields: [worldId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+  city   City   @relation(fields: [cityId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([cityId])
+  @@index([status])
+  @@index([finishesAt])
+}
+
+model SpyMission {
+  id               String    @id @default(uuid())
+  worldId          String
+  attackerPlayerId String
+  originCityId     String
+  targetPlayerId   String
+  targetCityId     String
+  missionType      String
+  status           String    @default("in_transit")
+  movementId       String?
+  returnMovementId String?
+  successChance    Float
+  detectionChance  Float
+  wasSuccessful    Boolean?
+  wasDetected      Boolean?
+  spyLost          Boolean?
+  reportMessageId  String?
+  cooldownKey      String
+  startedAt        DateTime
+  resolvedAt       DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  world          World  @relation(fields: [worldId], references: [id])
+  attackerPlayer Player @relation("SpyMissionAttacker", fields: [attackerPlayerId], references: [id])
+  targetPlayer   Player @relation("SpyMissionTarget", fields: [targetPlayerId], references: [id])
+  originCity     City   @relation("SpyMissionOriginCity", fields: [originCityId], references: [id])
+  targetCity     City   @relation("SpyMissionTargetCity", fields: [targetCityId], references: [id])
+
+  @@index([worldId])
+  @@index([attackerPlayerId])
+  @@index([targetPlayerId])
+  @@index([originCityId])
+  @@index([targetCityId])
+  @@index([missionType])
+  @@index([status])
+  @@index([cooldownKey])
+  @@index([startedAt])
+}
+
+model SpyCooldown {
+  id               String   @id @default(uuid())
+  worldId          String
+  attackerPlayerId String
+  targetCityId     String
+  cooldownEndsAt   DateTime
+  createdAt        DateTime @default(now())
+
+  world          World  @relation(fields: [worldId], references: [id])
+  attackerPlayer Player @relation(fields: [attackerPlayerId], references: [id])
+
+  @@unique([attackerPlayerId, targetCityId])
+  @@index([worldId])
+  @@index([cooldownEndsAt])
+}
+
+model GameAnalyticsEvent {
+  id        String   @id @default(uuid())
+  worldId   String
+  playerId  String
+  eventType String
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  world  World  @relation(fields: [worldId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model BetaInviteCode {
+  id              String   @id @default(uuid())
+  code            String   @unique
+  status          String   @default("active")
+  cohort          String?
+  maxUses         Int      @default(1)
+  usedCount       Int      @default(0)
+  createdByUserId String?
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  usages BetaInviteUsage[]
+
+  @@index([code])
+  @@index([status])
+  @@index([cohort])
+  @@index([expiresAt])
+}
+
+model BetaEmailAllowlist {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  status          String   @default("active")
+  cohort          String?
+  createdByUserId String?
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  usages BetaAllowlistUsage[]
+
+  @@index([email])
+  @@index([status])
+  @@index([cohort])
+  @@index([expiresAt])
+}
+
+model BetaAllowlistUsage {
+  id          String   @id @default(uuid())
+  allowlistId String
+  userId      String
+  playerId    String?
+  cohort      String?
+  usedAt      DateTime @default(now())
+
+  allowlist BetaEmailAllowlist @relation(fields: [allowlistId], references: [id])
+  user      User               @relation(fields: [userId], references: [id])
+  player    Player?            @relation(fields: [playerId], references: [id])
+
+  @@index([allowlistId])
+  @@index([userId])
+  @@index([playerId])
+  @@index([cohort])
+  @@index([usedAt])
+}
+
+model BetaInviteUsage {
+  id           String   @id @default(uuid())
+  inviteCodeId String
+  userId       String
+  playerId     String?
+  cohort       String?
+  usedAt       DateTime @default(now())
+
+  inviteCode BetaInviteCode @relation(fields: [inviteCodeId], references: [id])
+  user       User           @relation(fields: [userId], references: [id])
+  player     Player?        @relation(fields: [playerId], references: [id])
+
+  @@index([inviteCodeId])
+  @@index([userId])
+  @@index([playerId])
+  @@index([cohort])
+  @@index([usedAt])
+}
+
+model BetaFeedback {
+  id         String    @id @default(uuid())
+  worldId    String?
+  userId     String
+  playerId   String?
+  category   String
+  sentiment  String?
+  title      String
+  message    String
+  page       String?
+  status     String    @default("open")
+  adminNote  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  reviewedAt DateTime?
+
+  world  World?  @relation(fields: [worldId], references: [id])
+  user   User    @relation(fields: [userId], references: [id])
+  player Player? @relation(fields: [playerId], references: [id])
+
+  @@index([worldId])
+  @@index([userId])
+  @@index([playerId])
+  @@index([category])
+  @@index([sentiment])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model BetaMetricSnapshot {
+  id           String   @id @default(uuid())
+  worldId      String
+  snapshotDate DateTime
+  metricName   String
+  metricValue  Float
+  dimensions   Json?
+  createdAt    DateTime @default(now())
+
+  world World @relation(fields: [worldId], references: [id])
+
+  @@index([worldId])
+  @@index([snapshotDate])
+  @@index([metricName])
+}
+
+model PlayerPremiumWallet {
+  playerId          String   @id
+  worldId           String
+  balance           Int      @default(0)
+  lifetimePurchased Int      @default(0)
+  lifetimeSpent     Int      @default(0)
+  updatedAt         DateTime @updatedAt
+
+  world  World  @relation(fields: [worldId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+
+  @@index([worldId])
+}
+
+model PremiumPurchase {
+  id                    String    @id @default(uuid())
+  worldId               String
+  playerId              String
+  userId                String
+  kind                  String
+  itemId                String
+  itemName              String
+  premiumCurrencyAmount Int       @default(0)
+  premiumCurrencyCost   Int       @default(0)
+  moneyAmountCents      Int       @default(0)
+  currencyCode          String    @default("USD")
+  provider              String
+  providerSessionId     String?
+  providerPaymentId     String?
+  providerCustomerId    String?
+  providerEventId       String?
+  checkoutUrl           String?
+  status                String    @default("completed")
+  receiptEmail          String?
+  receiptSentAt         DateTime?
+  fulfilledAt           DateTime?
+  cancelledAt           DateTime?
+  refundedAt            DateTime?
+  refundReason          String?
+  payload               Json?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  world        World                @relation(fields: [worldId], references: [id])
+  player       Player               @relation(fields: [playerId], references: [id])
+  user         User                 @relation(fields: [userId], references: [id])
+  refunds      PremiumRefund[]
+  auditLogs    PremiumAuditLog[]
+  entitlements PremiumEntitlement[]
+
+  @@unique([provider, providerPaymentId])
+  @@index([worldId])
+  @@index([playerId])
+  @@index([userId])
+  @@index([status])
+  @@index([providerSessionId])
+  @@index([providerPaymentId])
+  @@index([providerEventId])
+  @@index([createdAt])
+}
+
+model PremiumLedgerEntry {
+  id            String   @id @default(uuid())
+  worldId       String
+  userId        String
+  playerId      String?
+  entryType     String
+  amount        Int
+  balanceAfter  Int
+  referenceType String?
+  referenceId   String?
+  reason        String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  world  World   @relation(fields: [worldId], references: [id])
+  user   User    @relation(fields: [userId], references: [id])
+  player Player? @relation(fields: [playerId], references: [id])
+
+  @@index([worldId])
+  @@index([userId])
+  @@index([playerId])
+  @@index([entryType])
+  @@index([referenceType])
+  @@index([referenceId])
+  @@index([createdAt])
+}
+
+model CosmeticInventoryItem {
+  id         String    @id @default(uuid())
+  worldId    String
+  userId     String
+  playerId   String?
+  itemType   String
+  itemId     String
+  sourceType String
+  sourceId   String?
+  equippedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  world  World   @relation(fields: [worldId], references: [id])
+  user   User    @relation(fields: [userId], references: [id])
+  player Player? @relation(fields: [playerId], references: [id])
+
+  @@unique([userId, itemId])
+  @@index([worldId])
+  @@index([userId])
+  @@index([playerId])
+  @@index([itemType])
+  @@index([itemId])
+  @@index([equippedAt])
+}
+
+model PremiumEntitlement {
+  id         String    @id @default(uuid())
+  worldId    String
+  playerId   String
+  purchaseId String?
+  itemId     String
+  itemType   String
+  targetType String?
+  targetId   String?
+  cityId     String?
+  allianceId String?
+  status     String    @default("active")
+  startsAt   DateTime  @default(now())
+  endsAt     DateTime?
+  payload    Json?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  world    World            @relation(fields: [worldId], references: [id])
+  player   Player           @relation(fields: [playerId], references: [id])
+  purchase PremiumPurchase? @relation(fields: [purchaseId], references: [id])
+  city     City?            @relation(fields: [cityId], references: [id])
+  alliance Alliance?        @relation(fields: [allianceId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([purchaseId])
+  @@index([itemId])
+  @@index([itemType])
+  @@index([targetType, targetId])
+  @@index([status])
+}
+
+model PremiumRefund {
+  id               String   @id @default(uuid())
+  worldId          String
+  purchaseId       String
+  playerId         String
+  userId           String
+  amountCents      Int      @default(0)
+  premiumCurrency  Int      @default(0)
+  reason           String
+  status           String   @default("pending")
+  providerRefundId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  world    World           @relation(fields: [worldId], references: [id])
+  purchase PremiumPurchase @relation(fields: [purchaseId], references: [id])
+  user     User            @relation(fields: [userId], references: [id])
+
+  @@index([worldId])
+  @@index([purchaseId])
+  @@index([playerId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PremiumAuditLog {
+  id         String   @id @default(uuid())
+  worldId    String
+  playerId   String
+  userId     String?
+  purchaseId String?
+  actionType String
+  targetType String?
+  targetId   String?
+  payload    Json?
+  createdAt  DateTime @default(now())
+
+  world    World            @relation(fields: [worldId], references: [id])
+  player   Player           @relation(fields: [playerId], references: [id])
+  user     User?            @relation(fields: [userId], references: [id])
+  purchase PremiumPurchase? @relation(fields: [purchaseId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([userId])
+  @@index([purchaseId])
+  @@index([actionType])
+  @@index([createdAt])
+}
+
+model UserInventoryItem {
+  id         String    @id @default(uuid())
+  userId     String
+  playerId   String?
+  itemId     String
+  quantity   Int       @default(1)
+  status     String    @default("available")
+  sourceType String
+  sourceId   String?
+  metadata   Json?
+  acquiredAt DateTime  @default(now())
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id])
+  player Player? @relation(fields: [playerId], references: [id])
+
+  @@unique([userId, itemId, sourceId])
+  @@index([userId])
+  @@index([playerId])
+  @@index([itemId])
+  @@index([status])
+  @@index([sourceType])
+  @@index([expiresAt])
+}
+
+model InventoryTransaction {
+  id              String   @id @default(uuid())
+  userId          String
+  playerId        String?
+  itemId          String
+  transactionType String
+  quantity        Int
+  balanceAfter    Int?
+  sourceType      String?
+  sourceId        String?
+  targetType      String?
+  targetId        String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id])
+  player Player? @relation(fields: [playerId], references: [id])
+
+  @@index([userId])
+  @@index([playerId])
+  @@index([itemId])
+  @@index([transactionType])
+  @@index([sourceType])
+  @@index([sourceId])
+  @@index([createdAt])
+}
+
+model EquippedCosmetic {
+  id           String   @id @default(uuid())
+  userId       String
+  playerId     String?
+  cityId       String?
+  allianceId   String?
+  cosmeticSlot String
+  itemId       String
+  equippedAt   DateTime @default(now())
+
+  user     User      @relation(fields: [userId], references: [id])
+  player   Player?   @relation(fields: [playerId], references: [id])
+  city     City?     @relation(fields: [cityId], references: [id])
+  alliance Alliance? @relation(fields: [allianceId], references: [id])
+
+  @@unique([userId, cosmeticSlot, playerId, cityId, allianceId])
+  @@index([userId])
+  @@index([playerId])
+  @@index([cityId])
+  @@index([allianceId])
+  @@index([cosmeticSlot])
+  @@index([itemId])
+}
+
+model SupporterDonation {
+  id                String    @id @default(uuid())
+  userId            String
+  playerId          String?
+  supporterPackId   String
+  status            String    @default("pending")
+  amountCents       Int
+  currency          String
+  provider          String
+  providerSessionId String?
+  providerPaymentId String?
+  providerEventId   String?
+  checkoutUrl       String?
+  receiptEmail      String?
+  receiptSentAt     DateTime?
+  fulfilledAt       DateTime?
+  cancelledAt       DateTime?
+  refundedAt        DateTime?
+  refundReason      String?
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user      User                   @relation(fields: [userId], references: [id])
+  player    Player?                @relation(fields: [playerId], references: [id])
+  auditLogs DonationAuditLog[]
+  refunds   DonationRefundRecord[]
+
+  @@index([userId])
+  @@index([playerId])
+  @@index([supporterPackId])
+  @@index([status])
+  @@index([provider])
+  @@index([providerSessionId])
+  @@index([providerPaymentId])
+  @@index([providerEventId])
+  @@index([createdAt])
+}
+
+model DonationAuditLog {
+  id           String   @id @default(uuid())
+  donationId   String?
+  userId       String?
+  playerId     String?
+  actionType   String
+  statusBefore String?
+  statusAfter  String?
+  amountCents  Int?
+  currency     String?
+  provider     String?
+  payload      Json?
+  createdAt    DateTime @default(now())
+
+  donation SupporterDonation? @relation(fields: [donationId], references: [id])
+  user     User?              @relation(fields: [userId], references: [id])
+  player   Player?            @relation(fields: [playerId], references: [id])
+
+  @@index([donationId])
+  @@index([userId])
+  @@index([playerId])
+  @@index([actionType])
+  @@index([provider])
+  @@index([createdAt])
+}
+
+model DonationRefundRecord {
+  id               String   @id @default(uuid())
+  donationId       String
+  userId           String
+  provider         String?
+  providerRefundId String?
+  amountCents      Int?
+  currency         String?
+  reason           String?
+  status           String   @default("pending")
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  donation SupporterDonation @relation(fields: [donationId], references: [id])
+  user     User              @relation(fields: [userId], references: [id])
+
+  @@index([donationId])
+  @@index([userId])
+  @@index([provider])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model LiveEvent {
+  id              String    @id @default(uuid())
+  worldId         String
+  type            String
+  status          String    @default("scheduled")
+  title           String
+  description     String
+  startsAt        DateTime
+  endsAt          DateTime
+  announcement    String?
+  bonusPercent    Int?
+  reward          Json?
+  createdBy       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  endedAt         DateTime?
+  cancelledAt     DateTime?
+
+  world          World                    @relation(fields: [worldId], references: [id])
+  participations LiveEventParticipation[]
+
+  @@index([worldId])
+  @@index([type])
+  @@index([status])
+  @@index([startsAt])
+  @@index([endsAt])
+}
+
+model LiveEventParticipation {
+  id              String    @id @default(uuid())
+  worldId         String
+  eventId         String
+  playerId        String
+  points          Int       @default(0)
+  rewardClaimedAt DateTime?
+  joinedAt        DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  world  World     @relation(fields: [worldId], references: [id])
+  event  LiveEvent @relation(fields: [eventId], references: [id])
+  player Player    @relation(fields: [playerId], references: [id])
+
+  @@unique([eventId, playerId])
+  @@index([worldId])
+  @@index([eventId])
+  @@index([playerId])
+  @@index([points])
+}
+
+model MarketplaceOffer {
+  id                 String    @id @default(uuid())
+  worldId            String
+  creatorPlayerId    String
+  creatorCityId      String
+  offerType          String
+  status             String    @default("active")
+  offeredResource    String
+  offeredAmount      Int
+  requestedResource  String
+  requestedAmount    Int
+  acceptedByPlayerId String?
+  acceptedByCityId   String?
+  expiresAt          DateTime
+  acceptedAt         DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  payload            Json?
+
+  world            World   @relation(fields: [worldId], references: [id])
+  creatorPlayer    Player  @relation("MarketplaceOffersCreated", fields: [creatorPlayerId], references: [id])
+  creatorCity      City    @relation("MarketplaceOfferCreatorCity", fields: [creatorCityId], references: [id])
+  acceptedByPlayer Player? @relation("MarketplaceOffersAccepted", fields: [acceptedByPlayerId], references: [id])
+  acceptedByCity   City?   @relation("MarketplaceOfferAcceptedCity", fields: [acceptedByCityId], references: [id])
+
+  @@index([worldId])
+  @@index([creatorPlayerId])
+  @@index([creatorCityId])
+  @@index([acceptedByPlayerId])
+  @@index([acceptedByCityId])
+  @@index([offerType])
+  @@index([status])
+  @@index([offeredResource])
+  @@index([requestedResource])
+  @@index([expiresAt])
+}
+
+model TradeHistory {
+  id                 String    @id @default(uuid())
+  worldId            String
+  offerId            String
+  sellerPlayerId     String
+  buyerPlayerId      String
+  sellerCityId       String
+  buyerCityId        String
+  resourceFromSeller String
+  amountFromSeller   Int
+  resourceFromBuyer  String
+  amountFromBuyer    Int
+  taxFromSellerSide  Int       @default(0)
+  taxFromBuyerSide   Int       @default(0)
+  movementId         String?
+  completedAt        DateTime?
+  createdAt          DateTime  @default(now())
+
+  world World @relation(fields: [worldId], references: [id])
+
+  @@index([worldId])
+  @@index([offerId])
+  @@index([sellerPlayerId])
+  @@index([buyerPlayerId])
+  @@index([sellerCityId])
+  @@index([buyerCityId])
+}
+
+model SuspiciousTradeLog {
+  id              String   @id @default(uuid())
+  worldId         String
+  offerId         String?
+  playerId        String?
+  relatedPlayerId String?
+  reason          String
+  severity        String   @default("low")
+  payload         Json?
+  createdAt       DateTime @default(now())
+
+  world World @relation(fields: [worldId], references: [id])
+
+  @@index([worldId])
+  @@index([offerId])
+  @@index([playerId])
+  @@index([relatedPlayerId])
+  @@index([severity])
+}
+
+model AbuseSignal {
+  id              String    @id @default(uuid())
+  worldId         String
+  playerId        String?
+  relatedPlayerId String?
+  cityId          String?
+  allianceId      String?
+  signalType      String
+  severity        String    @default("low")
+  status          String    @default("open")
+  score           Int       @default(1)
+  title           String?
+  description     String?
+  reason          String
+  source          String?
+  targetType      String?
+  targetId        String?
+  ipHash          String?
+  userAgentHash   String?
+  sessionHash     String?
+  payload         Json?
+  assignedAdminUserId String?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  resolvedAt      DateTime?
+  resolutionNote  String?
+  adminNote       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  world         World   @relation(fields: [worldId], references: [id])
+  player        Player? @relation(fields: [playerId], references: [id])
+  relatedPlayer Player? @relation("RelatedAbuseSignalPlayer", fields: [relatedPlayerId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([relatedPlayerId])
+  @@index([cityId])
+  @@index([allianceId])
+  @@index([signalType])
+  @@index([severity])
+  @@index([status])
+  @@index([score])
+  @@index([targetType, targetId])
+  @@index([ipHash])
+  @@index([userAgentHash])
+  @@index([sessionHash])
+  @@index([createdAt])
+}
+
+model SensitiveActionAuditLog {
+  id              String   @id @default(uuid())
+  worldId         String?
+  userId          String?
+  playerId        String?
+  relatedPlayerId String?
+  cityId          String?
+  allianceId      String?
+  actionType      String
+  targetType      String?
+  targetId        String?
+  ipHash          String?
+  userAgentHash   String?
+  sessionHash     String?
+  payload         Json?
+  createdAt       DateTime @default(now())
+
+  world  World?  @relation(fields: [worldId], references: [id])
+  user   User?   @relation(fields: [userId], references: [id])
+  player Player? @relation(fields: [playerId], references: [id])
+
+  @@index([worldId])
+  @@index([userId])
+  @@index([playerId])
+  @@index([relatedPlayerId])
+  @@index([cityId])
+  @@index([allianceId])
+  @@index([actionType])
+  @@index([targetType, targetId])
+  @@index([ipHash])
+  @@index([userAgentHash])
+  @@index([sessionHash])
+  @@index([createdAt])
+}
+
+model ActionFrequencyCounter {
+  id          String   @id @default(uuid())
+  worldId     String?
+  userId      String?
+  playerId    String?
+  actionType  String
+  windowKey   String
+  count       Int      @default(0)
+  firstSeenAt DateTime
+  lastSeenAt  DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  world  World?  @relation(fields: [worldId], references: [id])
+  user   User?   @relation(fields: [userId], references: [id])
+  player Player? @relation(fields: [playerId], references: [id])
+
+  @@unique([playerId, actionType, windowKey])
+  @@index([worldId])
+  @@index([userId])
+  @@index([playerId])
+  @@index([actionType])
+  @@index([windowKey])
+}
+
+model AccountRiskSignal {
+  id            String   @id @default(uuid())
+  userId        String
+  playerId      String?
+  signalType    String
+  riskLevel     String
+  ipHash        String?
+  userAgentHash String?
+  sessionHash   String?
+  payload       Json?
+  createdAt     DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id])
+  player Player? @relation(fields: [playerId], references: [id])
+
+  @@index([userId])
+  @@index([playerId])
+  @@index([signalType])
+  @@index([riskLevel])
+  @@index([ipHash])
+  @@index([userAgentHash])
+  @@index([sessionHash])
+  @@index([createdAt])
+}
+
+model PlayerModeration {
+  playerId       String    @id
+  worldId        String
+  status         String    @default("clear")
+  warningCount   Int       @default(0)
+  mutedUntil     DateTime?
+  suspendedUntil DateTime?
+  bannedAt       DateTime?
+  reason         String?
+  updatedAt      DateTime  @updatedAt
+
+  world  World  @relation(fields: [worldId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+
+  @@index([worldId])
+  @@index([status])
+  @@index([mutedUntil])
+  @@index([suspendedUntil])
+  @@index([bannedAt])
+}
+
+model AdminRole {
+  id              String    @id @default(uuid())
+  userId          String
+  role            String
+  grantedByUserId String?
+  grantedAt       DateTime  @default(now())
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user      User  @relation("AdminRoleUser", fields: [userId], references: [id])
+  grantedBy User? @relation("AdminRoleGrantedBy", fields: [grantedByUserId], references: [id])
+
+  @@index([userId])
+  @@index([role])
+  @@index([revokedAt])
+}
+
+model PlayerModerationAction {
+  id              String    @id @default(uuid())
+  worldId         String
+  playerId        String
+  userId          String
+  adminUserId     String
+  actionType      String
+  status          String    @default("active")
+  reason          String
+  internalNote    String?
+  publicMessage   String?
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+  revokedAt       DateTime?
+  revokedByUserId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  world           World  @relation(fields: [worldId], references: [id])
+  player          Player @relation(fields: [playerId], references: [id])
+  user            User   @relation("ModerationTargetUser", fields: [userId], references: [id])
+  adminUser       User   @relation("ModerationAdminUser", fields: [adminUserId], references: [id])
+  revokedByUser   User?  @relation("ModerationRevokedByUser", fields: [revokedByUserId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([userId])
+  @@index([adminUserId])
+  @@index([actionType])
+  @@index([status])
+  @@index([endsAt])
+}
+
+model AdminPlayerWarning {
+  id              String   @id @default(uuid())
+  worldId         String
+  playerId        String
+  adminUserId     String
+  reason          String
+  message         String?
+  createdAt       DateTime @default(now())
+
+  world     World  @relation(fields: [worldId], references: [id])
+  player    Player @relation(fields: [playerId], references: [id])
+  adminUser User   @relation(fields: [adminUserId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([adminUserId])
+  @@index([createdAt])
+}
+
+model AdminPlayerNote {
+  id          String   @id @default(uuid())
+  worldId     String
+  playerId    String
+  userId      String
+  adminUserId String
+  body        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  world     World  @relation(fields: [worldId], references: [id])
+  player    Player @relation(fields: [playerId], references: [id])
+  user      User   @relation("AdminNoteTargetUser", fields: [userId], references: [id])
+  adminUser User   @relation(fields: [adminUserId], references: [id])
+
+  @@index([worldId])
+  @@index([playerId])
+  @@index([adminUserId])
+  @@index([createdAt])
+}
+
+model AdminActionLog {
+  id             String   @id @default(uuid())
+  worldId        String
+  adminUserId    String
+  actionType     String
+  targetType     String?
+  targetId       String?
+  playerId       String?
+  reason         String?
+  payloadBefore  Json?
+  payloadAfter   Json?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  world     World @relation(fields: [worldId], references: [id])
+  adminUser User  @relation(fields: [adminUserId], references: [id])
+
+  @@index([worldId])
+  @@index([adminUserId])
+  @@index([actionType])
+  @@index([targetType])
+  @@index([targetId])
+  @@index([playerId])
+  @@index([createdAt])
+}

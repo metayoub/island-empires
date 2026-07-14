@@ -1,0 +1,8 @@
+building,level_1_cost,cost_multiplier,level_2_cost,level_3_cost
+City Hall,"120 wood; 50 gold",1.6,"192 wood; 80 gold","307 wood; 128 gold"
+Warehouse,"100 wood; 40 gold",1.5,"150 wood; 60 gold","225 wood; 90 gold"
+Academy,"150 wood; 80 gold",1.7,"255 wood; 136 gold","433 wood; 231 gold"
+Tavern,"120 wood; 60 gold",1.5,"180 wood; 90 gold","270 wood; 135 gold"
+Barracks,"150 wood; 60 gold",1.6,"240 wood; 96 gold","384 wood; 153 gold"
+Port,"180 wood; 100 gold",1.6,"288 wood; 160 gold","460 wood; 256 gold"
+Palace,"300 wood; 200 gold",2,"600 wood; 400 gold","1200 wood; 800 gold"

@@ -1,0 +1,7 @@
+- Player can access the game
+- A default city is created
+- City name is displayed
+- City level is displayed
+- Resource bar is visible
+- Buildings are visible
+- Data is loaded from the backend

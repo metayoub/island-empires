@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "resources": [
+    {
+      "id": "wood",
+      "name": "Wood",
+      "type": "basic",
+      "startingAmount": 500,
+      "baseStorageCapacity": 2000,
+      "baseProtectedCapacity": 200,
+      "baseProductionPerHour": 120,
+      "isVisibleInResourceBar": true
+    },
+    {
+      "id": "stone",
+      "name": "Stone",
+      "type": "basic",
+      "startingAmount": 400,
+      "baseStorageCapacity": 2000,
+      "baseProtectedCapacity": 200,
+      "baseProductionPerHour": 90,
+      "isVisibleInResourceBar": true
+    },
+    {
+      "id": "food",
+      "name": "Food",
+      "type": "basic",
+      "startingAmount": 300,
+      "baseStorageCapacity": 2000,
+      "baseProtectedCapacity": 200,
+      "baseProductionPerHour": 100,
+      "isVisibleInResourceBar": true
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "type": "currency",
+      "startingAmount": 100,
+      "baseStorageCapacity": 100000,
+      "baseProtectedCapacity": 0,
+      "baseProductionPerHour": 20,
+      "isVisibleInResourceBar": true
+    },
+    {
+      "id": "knowledge",
+      "name": "Knowledge",
+      "type": "research",
+      "startingAmount": 0,
+      "baseStorageCapacity": 10000,
+      "baseProtectedCapacity": 0,
+      "baseProductionPerHour": 0,
+      "isVisibleInResourceBar": false
+    }
+  ]
+}
+

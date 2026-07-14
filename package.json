@@ -1,0 +1,37 @@
+{
+  "name": "island-empires",
+  "version": "0.0.1",
+  "license": "MIT",
+  "description": "Monorepo foundation for Island Empires, a long-term browser strategy game.",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm dev:all",
+    "dev:all": "pnpm -r --parallel --filter web --filter api --filter worker --filter admin dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api start:dev",
+    "dev:worker": "pnpm --filter worker start:dev",
+    "dev:admin": "pnpm --filter admin dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write .",
+    "db:migrate": "pnpm --filter api prisma:migrate",
+    "db:migrate:dev": "pnpm --filter api prisma:migrate:dev",
+    "db:migration:check": "pnpm --filter api exec dotenv -e ../../.env.example -- prisma validate --schema prisma/schema.prisma",
+    "db:generate": "pnpm --filter api prisma:generate",
+    "db:studio": "pnpm --filter api prisma:studio",
+    "env:check": "node scripts/check-env.mjs",
+    "security:test": "node scripts/security-check.mjs",
+    "load:test": "node scripts/load-test.mjs",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.19.0",
+    "@typescript-eslint/parser": "^8.19.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  }
+}

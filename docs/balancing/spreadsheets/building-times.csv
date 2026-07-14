@@ -1,0 +1,8 @@
+building,level_1_seconds,duration_multiplier,level_2_seconds,level_3_seconds
+City Hall,60,1.5,90,135
+Warehouse,45,1.4,62,88
+Academy,90,1.5,135,202
+Tavern,75,1.4,105,147
+Barracks,90,1.5,135,202
+Port,120,1.5,180,270
+Palace,180,1.8,324,583

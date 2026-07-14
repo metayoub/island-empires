@@ -1,0 +1,5 @@
+unit,wood,gold,marble,wine,crystal,sulfur,training_seconds,attack,defense,health
+Militia,25,15,0,0,0,0,20,3,4,7
+Spearman,40,20,0,0,0,0,30,5,8,10
+Archer,60,30,0,0,0,0,45,9,4,8
+Swordsman,80,50,0,0,0,5,60,12,8,12

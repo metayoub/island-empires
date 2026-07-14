@@ -1,0 +1,8 @@
+day,expected_unlock,resource_focus,main_sink,return_reason
+1,"Warehouse or City Hall upgrade","wood and gold basics","first building upgrade","claim tutorial reward and assign workers"
+2,"Tavern and Academy","research point setup","Academy or Tavern","start research"
+3,"Barracks and Spearmen","wood for units","unit training","prepare PvE"
+4,"Level 1 PvE camp","recover some resources","battle losses","read battle report"
+5,"Mixed army or Palace prep","gold and wood stockpile","army plus Palace savings","stronger camp"
+6,"Palace level 1","colonization cost","Palace and colonization","choose second city"
+7,"Second city","capital and colony split","colony growth","manage empire"

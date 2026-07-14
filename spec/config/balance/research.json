@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "research": [
+    {
+      "id": "basic_engineering",
+      "name": "Basic Engineering",
+      "category": "construction",
+      "maxLevel": 1,
+      "requires": {
+        "buildings": { "academy": 1 },
+        "research": {}
+      },
+      "levels": {
+        "1": {
+          "cost": { "wood": 120, "stone": 120, "knowledge": 80 },
+          "durationSeconds": 900,
+          "effects": {
+            "constructionSpeedMultiplier": 1.05
+          }
+        }
+      }
+    },
+    {
+      "id": "resource_management",
+      "name": "Resource Management",
+      "category": "economy",
+      "maxLevel": 1,
+      "requires": {
+        "buildings": { "academy": 1, "warehouse": 2 },
+        "research": {}
+      },
+      "levels": {
+        "1": {
+          "cost": { "wood": 160, "stone": 100, "knowledge": 120 },
+          "durationSeconds": 1200,
+          "effects": {
+            "storageCapacityMultiplier": 1.1
+          }
+        }
+      }
+    },
+    {
+      "id": "agriculture",
+      "name": "Agriculture",
+      "category": "production",
+      "maxLevel": 1,
+      "requires": {
+        "buildings": { "academy": 1, "farm": 2 },
+        "research": {}
+      },
+      "levels": {
+        "1": {
+          "cost": { "food": 180, "knowledge": 100 },
+          "durationSeconds": 1000,
+          "effects": {
+            "resourceProductionMultiplier": {
+              "food": 1.1
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "masonry",
+      "name": "Masonry",
+      "category": "production",
+      "maxLevel": 1,
+      "requires": {
+        "buildings": { "academy": 2, "quarry": 3 },
+        "research": { "basic_engineering": 1 }
+      },
+      "levels": {
+        "1": {
+          "cost": { "stone": 260, "knowledge": 180 },
+          "durationSeconds": 1800,
+          "effects": {
+            "resourceProductionMultiplier": {
+              "stone": 1.1
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "forestry",
+      "name": "Forestry",
+      "category": "production",
+      "maxLevel": 1,
+      "requires": {
+        "buildings": { "academy": 2, "lumber_yard": 3 },
+        "research": { "basic_engineering": 1 }
+      },
+      "levels": {
+        "1": {
+          "cost": { "wood": 260, "knowledge": 180 },
+          "durationSeconds": 1800,
+          "effects": {
+            "resourceProductionMultiplier": {
+              "wood": 1.1
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
