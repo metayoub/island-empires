@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import type {
   BrowserPushSubscriptionListResponse,
   BrowserPushSubscriptionResponse,
+  ClearNotificationsResponse,
   NotificationChannel,
   NotificationCenterResponse,
   NotificationDeliverySummary,
@@ -293,6 +294,47 @@ export class ReportsService {
     });
 
     return this.toDeliverySummary(updated);
+  }
+
+  async clearNotifications(): Promise<ClearNotificationsResponse> {
+    const bootstrap = await this.developmentStateService.ensureDevelopmentState();
+    const clearedAt = new Date();
+    const [result] = await Promise.all([
+      (this.prisma as any).notificationDelivery.updateMany({
+        where: {
+          playerId: bootstrap.player.id,
+          worldId: bootstrap.world.id,
+          channel: { in: CHANNELS },
+          archivedAt: null,
+        },
+        data: {
+          archivedAt: clearedAt,
+          readAt: clearedAt,
+        },
+      }),
+      this.prisma.report.updateMany({
+        where: {
+          playerId: bootstrap.player.id,
+          worldId: bootstrap.world.id,
+          isRead: false,
+        },
+        data: { isRead: true },
+      }),
+      this.prisma.message.updateMany({
+        where: {
+          recipientPlayerId: bootstrap.player.id,
+          worldId: bootstrap.world.id,
+          deletedByRecipient: false,
+          isReadByRecipient: false,
+        },
+        data: {
+          isReadByRecipient: true,
+          readAt: clearedAt,
+        },
+      }),
+    ]);
+
+    return { archivedCount: result.count };
   }
 
   private async getUnreadCountersForPlayer(

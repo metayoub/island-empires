@@ -80,12 +80,13 @@ export class MovementsService implements OnModuleDestroy {
       where: {
         playerId: bootstrap.player.id,
         movementType: TRANSPORT_CONFIG.movementType,
+        status: { in: ['in_transit', 'returning'] },
       },
       include: {
         originCity: true,
         destinationCity: { include: { island: true } },
       },
-      orderBy: [{ status: 'asc' }, { arrivalTime: 'desc' }],
+      orderBy: [{ arrivalTime: 'asc' }],
       take: 25,
     });
 

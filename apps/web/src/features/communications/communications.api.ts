@@ -3,6 +3,7 @@ import type {
   BlockPlayerResponse,
   BrowserPushSubscriptionListResponse,
   CitySearchResponse,
+  ClearNotificationsResponse,
   MessageDetail,
   MessageListResponse,
   ModerationQueueResponse,
@@ -112,6 +113,10 @@ export function archiveNotification(
   notificationId: string,
 ): Promise<NotificationDeliverySummary> {
   return apiPost<NotificationDeliverySummary>(`/api/notifications/${notificationId}/archive`, {});
+}
+
+export function clearNotifications(): Promise<ClearNotificationsResponse> {
+  return apiPost<ClearNotificationsResponse>('/api/notifications/clear', {});
 }
 
 export function getReports(category?: string): Promise<ReportSummary[]> {

@@ -59,6 +59,11 @@ export class ReportsController {
     return this.reportsService.disableBrowserPushSubscription(subscriptionId);
   }
 
+  @Post('notifications/clear')
+  clearNotifications() {
+    return this.reportsService.clearNotifications();
+  }
+
   @Post('notifications/:notificationId/read')
   markNotificationRead(@Param('notificationId') notificationId: string) {
     return this.reportsService.markNotificationRead(notificationId);

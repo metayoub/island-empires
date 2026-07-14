@@ -499,6 +499,10 @@ export type NotificationDeliverySummary = {
   archivedAt: string | null;
 };
 
+export type ClearNotificationsResponse = {
+  archivedCount: number;
+};
+
 export type SendMessageRequest = {
   recipientPlayerId: string;
   subject: string;

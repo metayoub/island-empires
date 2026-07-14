@@ -38,13 +38,7 @@ export function TutorialPanel() {
   const currentQuest = questsQuery.data?.currentQuest;
 
   if (!currentQuest) {
-    return (
-      <Panel title="Tutorial">
-        <p className="text-sm text-muted">
-          You have completed the tutorial. Keep growing your empire.
-        </p>
-      </Panel>
-    );
+    return null;
   }
 
   const isCompleted = currentQuest.status === 'completed';

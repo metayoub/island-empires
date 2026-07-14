@@ -255,6 +255,46 @@ describe('ReportsService', () => {
     expect(response.archivedAt).toBeTruthy();
   });
 
+  it('clears all owned notifications', async () => {
+    const { service, prisma } = await createService();
+
+    const response = await service.clearNotifications();
+
+    expect(prisma.notificationDelivery.updateMany).toHaveBeenCalledWith({
+      where: {
+        playerId: PLAYER_ID,
+        worldId: WORLD_ID,
+        channel: { in: ['in_game', 'email', 'browser_push'] },
+        archivedAt: null,
+      },
+      data: {
+        archivedAt: expect.any(Date),
+        readAt: expect.any(Date),
+      },
+    });
+    expect(prisma.report.updateMany).toHaveBeenCalledWith({
+      where: {
+        playerId: PLAYER_ID,
+        worldId: WORLD_ID,
+        isRead: false,
+      },
+      data: { isRead: true },
+    });
+    expect(prisma.message.updateMany).toHaveBeenCalledWith({
+      where: {
+        recipientPlayerId: PLAYER_ID,
+        worldId: WORLD_ID,
+        deletedByRecipient: false,
+        isReadByRecipient: false,
+      },
+      data: {
+        isReadByRecipient: true,
+        readAt: expect.any(Date),
+      },
+    });
+    expect(response).toEqual({ archivedCount: 1 });
+  });
+
   it('lists and disables owned browser push subscriptions', async () => {
     const { service, prisma } = await createService();
 

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Badge, Button, ErrorState, LoadingState, Panel } from '../../components/ui';
 import {
   archiveNotification,
+  clearNotifications,
   disableBrowserPushSubscription,
   getBrowserPushSubscriptions,
   getNotificationCenter,
@@ -131,6 +132,13 @@ export function NotificationsPage() {
       void queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
   });
+  const clearNotificationsMutation = useMutation({
+    mutationFn: clearNotifications,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      void queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
+    },
+  });
 
   if (notificationsQuery.isLoading) {
     return <LoadingState message="Loading notifications..." />;
@@ -244,7 +252,19 @@ export function NotificationsPage() {
         ) : null}
       </Panel>
 
-      <Panel title="Recent Deliveries" subtitle="In-game, email, and browser push delivery state.">
+      <Panel
+        title="Recent Deliveries"
+        subtitle="In-game, email, and browser push delivery state."
+        action={
+          <Button
+            variant="secondary"
+            disabled={deliveries.length === 0 || clearNotificationsMutation.isPending}
+            onClick={() => clearNotificationsMutation.mutate()}
+          >
+            {clearNotificationsMutation.isPending ? 'Clearing...' : 'Clear All'}
+          </Button>
+        }
+      >
         {deliveries.length === 0 ? (
           <p className="rounded border border-border bg-surface p-4 text-sm font-semibold text-muted">
             No notification deliveries yet.
