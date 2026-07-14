@@ -122,7 +122,8 @@ export const UNIT_CONFIG: Record<UnitType, UnitDefinition> = {
     capacity: 0,
     requiredBuildingType: 'barracks',
     requiredBuildingLevel: 2,
-    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.FORMATION_TACTICS }],
+    requiredBuildings: [{ buildingType: 'workshop', level: 1 }],
+    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.RANGED_DRILLS }],
   },
   [UNIT_TYPES.SWORDSMAN]: {
     id: UNIT_TYPES.SWORDSMAN,
@@ -143,7 +144,8 @@ export const UNIT_CONFIG: Record<UnitType, UnitDefinition> = {
     capacity: 0,
     requiredBuildingType: 'barracks',
     requiredBuildingLevel: 3,
-    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.IRON_WEAPONS }],
+    requiredBuildings: [{ buildingType: 'workshop', level: 2 }],
+    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.STEEL_WEAPONS }],
   },
   [UNIT_TYPES.CAVALRY]: {
     id: UNIT_TYPES.CAVALRY,
@@ -164,10 +166,12 @@ export const UNIT_CONFIG: Record<UnitType, UnitDefinition> = {
     capacity: 0,
     requiredBuildingType: 'barracks',
     requiredBuildingLevel: 4,
-    requiredBuildings: [{ buildingType: 'trading_post', level: 1 }],
+    requiredBuildings: [
+      { buildingType: 'trading_post', level: 2 },
+      { buildingType: 'tavern', level: 2 },
+    ],
     unlockConditions: [
-      { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.IRON_WEAPONS },
-      { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.MARKET_EXCHANGE },
+      { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.MOUNTED_WARFARE },
     ],
   },
   [UNIT_TYPES.CATAPULT]: {
@@ -189,10 +193,12 @@ export const UNIT_CONFIG: Record<UnitType, UnitDefinition> = {
     capacity: 0,
     requiredBuildingType: 'barracks',
     requiredBuildingLevel: 5,
-    requiredBuildings: [{ buildingType: 'trading_post', level: 2 }],
+    requiredBuildings: [
+      { buildingType: 'trading_post', level: 2 },
+      { buildingType: 'workshop', level: 3 },
+    ],
     unlockConditions: [
-      { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.SIEGE_ENGINEERING },
-      { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.WALL_ENGINEERING },
+      { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.SIEGE_LOGISTICS },
     ],
   },
   [UNIT_TYPES.LIGHT_SHIP]: {
@@ -214,6 +220,8 @@ export const UNIT_CONFIG: Record<UnitType, UnitDefinition> = {
     capacity: 0,
     requiredBuildingType: 'shipyard',
     requiredBuildingLevel: 1,
+    requiredBuildings: [{ buildingType: 'port', level: 2 }],
+    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.COASTAL_PATROLS }],
   },
   [UNIT_TYPES.RAM_SHIP]: {
     id: UNIT_TYPES.RAM_SHIP,
@@ -233,7 +241,9 @@ export const UNIT_CONFIG: Record<UnitType, UnitDefinition> = {
     speed: 1,
     capacity: 0,
     requiredBuildingType: 'shipyard',
-    requiredBuildingLevel: 1,
+    requiredBuildingLevel: 2,
+    requiredBuildings: [{ buildingType: 'port', level: 3 }],
+    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.RAM_SHIP_DESIGN }],
   },
   [UNIT_TYPES.LIGHT_GALLEY]: {
     id: UNIT_TYPES.LIGHT_GALLEY,
@@ -254,7 +264,7 @@ export const UNIT_CONFIG: Record<UnitType, UnitDefinition> = {
     capacity: 10,
     requiredBuildingType: 'shipyard',
     requiredBuildingLevel: 1,
-    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: 'basic_navigation' }],
+    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.LIGHT_GALLEY_HANDLING }],
   },
   [UNIT_TYPES.BOARDING_SKIFF]: {
     id: UNIT_TYPES.BOARDING_SKIFF,
@@ -275,7 +285,8 @@ export const UNIT_CONFIG: Record<UnitType, UnitDefinition> = {
     capacity: 15,
     requiredBuildingType: 'shipyard',
     requiredBuildingLevel: 1,
-    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: 'shipbuilding' }],
+    requiredBuildings: [{ buildingType: 'port', level: 2 }],
+    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.DOCKSIDE_BOARDING }],
   },
   [UNIT_TYPES.BALLISTA_SHIP]: {
     id: UNIT_TYPES.BALLISTA_SHIP,
@@ -296,7 +307,8 @@ export const UNIT_CONFIG: Record<UnitType, UnitDefinition> = {
     capacity: 20,
     requiredBuildingType: 'shipyard',
     requiredBuildingLevel: 2,
-    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: 'crystal_optics' }],
+    requiredBuildings: [{ buildingType: 'workshop', level: 2 }],
+    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.NAVAL_ARTILLERY }],
   },
   [UNIT_TYPES.WAR_GALLEY]: {
     id: UNIT_TYPES.WAR_GALLEY,
@@ -316,8 +328,9 @@ export const UNIT_CONFIG: Record<UnitType, UnitDefinition> = {
     speed: 8,
     capacity: 30,
     requiredBuildingType: 'shipyard',
-    requiredBuildingLevel: 2,
-    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: 'reinforced_hulls' }],
+    requiredBuildingLevel: 3,
+    requiredBuildings: [{ buildingType: 'port', level: 3 }],
+    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.WAR_GALLEY_DESIGN }],
   },
   [UNIT_TYPES.FIRE_SHIP]: {
     id: UNIT_TYPES.FIRE_SHIP,
@@ -337,7 +350,14 @@ export const UNIT_CONFIG: Record<UnitType, UnitDefinition> = {
     speed: 0.9,
     capacity: 0,
     requiredBuildingType: 'shipyard',
-    requiredBuildingLevel: 1,
+    requiredBuildingLevel: 4,
+    requiredBuildings: [
+      { buildingType: 'port', level: 4 },
+      { buildingType: 'workshop', level: 3 },
+    ],
+    unlockConditions: [
+      { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.INCENDIARY_SHIPBUILDING },
+    ],
   },
   [UNIT_TYPES.HEAVY_WARSHIP]: {
     id: UNIT_TYPES.HEAVY_WARSHIP,
@@ -358,8 +378,12 @@ export const UNIT_CONFIG: Record<UnitType, UnitDefinition> = {
     capacity: 60,
     requiredBuildingType: 'shipyard',
     requiredBuildingLevel: 5,
-    requiredBuildings: [{ buildingType: 'barracks', level: 3 }],
-    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: 'naval_tactics' }],
+    requiredBuildings: [
+      { buildingType: 'port', level: 5 },
+      { buildingType: 'barracks', level: 3 },
+      { buildingType: 'workshop', level: 3 },
+    ],
+    unlockConditions: [{ type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.HEAVY_SHIPWRIGHTING }],
   },
   [UNIT_TYPES.SPY]: {
     id: UNIT_TYPES.SPY,

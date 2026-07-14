@@ -1,5 +1,5 @@
 import { Worker } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type Prisma } from '@prisma/client';
 import { getRedisConnectionOptions } from '../config/env';
 import {
   BUILDING_UPGRADE_COMPLETE_JOB,
@@ -43,6 +43,7 @@ const BASE_STORAGE = 1000;
 const STORAGE_PER_WAREHOUSE_LEVEL = 2000;
 type ResourceKey = (typeof RESOURCE_KEYS)[number];
 type TransportPayload = Record<ResourceKey, number>;
+type PrismaTransactionClient = Prisma.TransactionClient;
 
 const UNIT_TYPE_KEYS = ['militia', 'spearman', 'archer', 'swordsman', 'cavalry', 'catapult'] as const;
 type UnitTypeKey = (typeof UNIT_TYPE_KEYS)[number];
@@ -217,7 +218,7 @@ export async function completeBuildingUpgrade(
   prisma: PrismaClient,
   buildingId: string,
 ): Promise<boolean> {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: PrismaTransactionClient) => {
     const building = await tx.cityBuilding.findUnique({
       where: { id: buildingId },
       include: { city: true },
@@ -306,7 +307,7 @@ export async function completeResearchJob(
   prisma: PrismaClient,
   researchJobId: string,
 ): Promise<boolean> {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: PrismaTransactionClient) => {
     const job = await tx.researchJob.findUnique({ where: { id: researchJobId } });
 
     if (!job || job.status !== 'active') {
@@ -393,7 +394,7 @@ export async function completeResourceTransportArrival(
   prisma: PrismaClient,
   movementId: string,
 ): Promise<boolean> {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: PrismaTransactionClient) => {
     const movement = await tx.movement.findUnique({
       where: { id: movementId },
       include: { originCity: true, destinationCity: true },
@@ -544,7 +545,7 @@ export async function completeUnitTrainingOrder(
   prisma: PrismaClient,
   trainingOrderId: string,
 ): Promise<boolean> {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: PrismaTransactionClient) => {
     const order = await tx.unitTrainingOrder.findUnique({
       where: { id: trainingOrderId },
       include: { city: true },
@@ -630,7 +631,7 @@ export async function completePveAttackArrival(
   prisma: PrismaClient,
   movementId: string,
 ): Promise<boolean> {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: PrismaTransactionClient) => {
     const movement = await tx.movement.findUnique({
       where: { id: movementId },
       include: { originCity: true, destinationCamp: true },
@@ -738,7 +739,7 @@ export async function completePveReturn(
   prisma: PrismaClient,
   movementId: string,
 ): Promise<boolean> {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: PrismaTransactionClient) => {
     const movement = await tx.movement.findUnique({
       where: { id: movementId },
       include: { originCity: true },
@@ -859,7 +860,7 @@ export async function completePvpAttackArrival(
   prisma: PrismaClient,
   movementId: string,
 ): Promise<boolean> {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: PrismaTransactionClient) => {
     const movement = await tx.movement.findUnique({
       where: { id: movementId },
       include: { originCity: true, destinationCity: { include: { player: true } } },
@@ -1042,7 +1043,7 @@ export async function completePvpAttackArrival(
 }
 
 export async function completePvpReturn(prisma: PrismaClient, movementId: string): Promise<boolean> {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: PrismaTransactionClient) => {
     const movement = await tx.movement.findUnique({
       where: { id: movementId },
       include: { originCity: true },

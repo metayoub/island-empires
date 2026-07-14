@@ -1,4 +1,5 @@
 import { CONDITION_TYPES, type UnlockCondition } from './conditions.config.js';
+import { RESEARCH_TYPES } from './research.config.js';
 
 export const BUILDING_TYPES = {
   CITY_HALL: 'city_hall',
@@ -259,6 +260,21 @@ const STANDARD_BUILDING_MILESTONES: BuildingMilestone[] = [
 
 export const BUILDING_MILESTONE_CONFIG: Record<BuildingType, BuildingMilestone[]> = {
   [BUILDING_TYPES.CITY_HALL]: [
+    {
+      level: 3,
+      title: 'Town administration',
+      description:
+        'Requires basic storage planning before the city can push beyond early growth.',
+      conditions: [
+        {
+          type: CONDITION_TYPES.BUILDING_LEVEL_REQUIRED,
+          buildingType: BUILDING_TYPES.WAREHOUSE,
+          level: 2,
+        },
+        { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.CITY_PLANNING },
+        { type: CONDITION_TYPES.CITY_POPULATION_REQUIRED, population: 80 },
+      ],
+    },
     ...STANDARD_BUILDING_MILESTONES,
     {
       level: 25,
@@ -277,6 +293,21 @@ export const BUILDING_MILESTONE_CONFIG: Record<BuildingType, BuildingMilestone[]
     },
   ],
   [BUILDING_TYPES.ACADEMY]: [
+    {
+      level: 2,
+      title: 'Formal studies',
+      description:
+        'Requires a stable city core before research output can scale past the first academy.',
+      conditions: [
+        {
+          type: CONDITION_TYPES.BUILDING_LEVEL_REQUIRED,
+          buildingType: BUILDING_TYPES.CITY_HALL,
+          level: 2,
+        },
+        { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.ACADEMIC_CURRICULUM },
+        { type: CONDITION_TYPES.CITY_POPULATION_REQUIRED, population: 90 },
+      ],
+    },
     ...STANDARD_BUILDING_MILESTONES,
     {
       level: 25,
@@ -286,6 +317,21 @@ export const BUILDING_MILESTONE_CONFIG: Record<BuildingType, BuildingMilestone[]
     },
   ],
   [BUILDING_TYPES.BARRACKS]: [
+    {
+      level: 3,
+      title: 'Drilled companies',
+      description:
+        'Turns the barracks from basic recruitment into a trained military institution.',
+      conditions: [
+        {
+          type: CONDITION_TYPES.BUILDING_LEVEL_REQUIRED,
+          buildingType: BUILDING_TYPES.WORKSHOP,
+          level: 1,
+        },
+        { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.MILITARY_LOGISTICS },
+        { type: CONDITION_TYPES.RESOURCE_REQUIRED, resourceType: 'sulfur', amount: 50 },
+      ],
+    },
     ...STANDARD_BUILDING_MILESTONES,
     {
       level: 15,
@@ -301,6 +347,21 @@ export const BUILDING_MILESTONE_CONFIG: Record<BuildingType, BuildingMilestone[]
     },
   ],
   [BUILDING_TYPES.PORT]: [
+    {
+      level: 2,
+      title: 'Harbor charter',
+      description:
+        'Requires navigation knowledge and a larger city before sea logistics can scale.',
+      conditions: [
+        {
+          type: CONDITION_TYPES.BUILDING_LEVEL_REQUIRED,
+          buildingType: BUILDING_TYPES.CITY_HALL,
+          level: 2,
+        },
+        { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.HARBOR_ADMINISTRATION },
+        { type: CONDITION_TYPES.CITY_POPULATION_REQUIRED, population: 100 },
+      ],
+    },
     ...STANDARD_BUILDING_MILESTONES,
     {
       level: 15,
@@ -517,6 +578,36 @@ export const BUILDING_MILESTONE_CONFIG: Record<BuildingType, BuildingMilestone[]
     },
   ],
   [BUILDING_TYPES.SHIPYARD]: [
+    {
+      level: 1,
+      title: 'Naval yard charter',
+      description:
+        'Requires a prepared harbor, navigation research, and sulfur reserves before warships can be built.',
+      conditions: [
+        {
+          type: CONDITION_TYPES.BUILDING_LEVEL_REQUIRED,
+          buildingType: BUILDING_TYPES.PORT,
+          level: 2,
+        },
+        { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.NAVAL_ARCHITECTURE },
+        { type: CONDITION_TYPES.RESOURCE_REQUIRED, resourceType: 'sulfur', amount: 100 },
+      ],
+    },
+    {
+      level: 3,
+      title: 'Fleet works',
+      description:
+        'Requires shipbuilding doctrine and material reserves before medium warships scale.',
+      conditions: [
+        {
+          type: CONDITION_TYPES.BUILDING_LEVEL_REQUIRED,
+          buildingType: BUILDING_TYPES.WORKSHOP,
+          level: 2,
+        },
+        { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.FLEET_LOGISTICS },
+        { type: CONDITION_TYPES.RESOURCE_REQUIRED, resourceType: 'marble', amount: 300 },
+      ],
+    },
     ...STANDARD_BUILDING_MILESTONES,
     {
       level: 15,
@@ -599,6 +690,21 @@ export const BUILDING_MILESTONE_CONFIG: Record<BuildingType, BuildingMilestone[]
     },
   ],
   [BUILDING_TYPES.PALACE]: [
+    {
+      level: 1,
+      title: 'Colonial administration',
+      description:
+        'Requires a mature capital, navigation research, and enough storage depth for expansion.',
+      conditions: [
+        {
+          type: CONDITION_TYPES.BUILDING_LEVEL_REQUIRED,
+          buildingType: BUILDING_TYPES.CITY_HALL,
+          level: 5,
+        },
+        { type: CONDITION_TYPES.RESEARCH_REQUIRED, technologyId: RESEARCH_TYPES.COLONIAL_BUREAUCRACY },
+        { type: CONDITION_TYPES.WAREHOUSE_CAPACITY_REQUIRED, capacity: 3000 },
+      ],
+    },
     ...STANDARD_BUILDING_MILESTONES,
     {
       level: 30,

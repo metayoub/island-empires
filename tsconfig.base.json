@@ -9,12 +9,10 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "baseUrl": ".",
     "paths": {
-      "@island-empires/game-engine": ["packages/game-engine/src/index.ts"],
-      "@island-empires/shared-types": ["packages/shared-types/src/index.ts"],
-      "@island-empires/config": ["packages/config/src/index.ts"]
+      "@island-empires/game-engine": ["./packages/game-engine/src/index.ts"],
+      "@island-empires/shared-types": ["./packages/shared-types/src/index.ts"],
+      "@island-empires/config": ["./packages/config/src/index.ts"]
     }
   }
 }
-
