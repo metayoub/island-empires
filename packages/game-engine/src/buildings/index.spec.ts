@@ -32,6 +32,36 @@ describe('calculateBuildingUpgradeCost', () => {
     expect(calculateBuildingUpgradeCost({ currentLevel: 0, definition }).wood).toBe(120);
     expect(calculateBuildingUpgradeCost({ currentLevel: 0, definition }).marble).toBe(0);
   });
+
+  it('adds advanced material pressure after level 10', () => {
+    const warehouseDefinition = {
+      maxLevel: 50,
+      baseCost: {
+        wood: 100,
+        gold: 40,
+      },
+      costMultiplier: 1.5,
+      baseDurationSeconds: 45,
+      durationMultiplier: 1.4,
+    };
+
+    expect(calculateBuildingUpgradeCost({ currentLevel: 9, definition: warehouseDefinition })).toEqual({
+      wood: 3844,
+      gold: 1537,
+      marble: 0,
+      wine: 0,
+      crystal: 0,
+      sulfur: 0,
+    });
+    expect(calculateBuildingUpgradeCost({ currentLevel: 11, definition: warehouseDefinition })).toEqual({
+      wood: 8649,
+      gold: 3459,
+      marble: 4358,
+      wine: 0,
+      crystal: 0,
+      sulfur: 0,
+    });
+  });
 });
 
 describe('calculateBuildingUpgradeDurationSeconds', () => {

@@ -179,7 +179,7 @@ export class MarketplaceService {
       return createdOffer;
     });
 
-    return { offer: this.toOfferSummary(offer) };
+    return { offer: this.toOfferSummary(offer, bootstrap.player.id) };
   }
 
   async listOffers(input: {
@@ -211,7 +211,7 @@ export class MarketplaceService {
       (this.prisma as any).marketplaceOffer.count({ where }),
     ]);
 
-    return { offers: offers.map((offer: any) => this.toOfferSummary(offer)), pagination: { ...pagination, total } };
+    return { offers: offers.map((offer: any) => this.toOfferSummary(offer, bootstrap.player.id)), pagination: { ...pagination, total } };
   }
 
   async listMyOffers(input: { page?: number; pageSize?: number }): Promise<MarketplaceOfferListResponse> {
@@ -231,7 +231,7 @@ export class MarketplaceService {
       (this.prisma as any).marketplaceOffer.count({ where }),
     ]);
 
-    return { offers: offers.map((offer: any) => this.toOfferSummary(offer)), pagination: { ...pagination, total } };
+    return { offers: offers.map((offer: any) => this.toOfferSummary(offer, bootstrap.player.id)), pagination: { ...pagination, total } };
   }
 
   async acceptOffer(offerId: string, input: AcceptMarketplaceOfferRequest): Promise<AcceptMarketplaceOfferResponse> {
@@ -845,7 +845,7 @@ export class MarketplaceService {
     };
   }
 
-  private toOfferSummary(offer: any): MarketplaceOfferSummary {
+  private toOfferSummary(offer: any, currentPlayerId: string): MarketplaceOfferSummary {
     return {
       id: offer.id,
       offerType: offer.offerType,
@@ -865,6 +865,7 @@ export class MarketplaceService {
         x: offer.creatorCity?.island?.x ?? null,
         y: offer.creatorCity?.island?.y ?? null,
       },
+      isOwnOffer: offer.creatorPlayerId === currentPlayerId,
       acceptedByPlayerId: offer.acceptedByPlayerId ?? null,
       acceptedByCityId: offer.acceptedByCityId ?? null,
       expiresAt: offer.expiresAt.toISOString(),

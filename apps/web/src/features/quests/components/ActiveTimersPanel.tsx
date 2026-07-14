@@ -6,8 +6,11 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 import { Timer } from '../../../components/ui/Timer';
 import { getBarracksOverview, getShipyardOverview } from '../../barracks/barracks.api';
 import { getCityOverview, getMovements } from '../../city/city.api';
+import { getActiveBlockades, getNavalMovements } from '../../map/naval.api';
+import { getArmyMovements } from '../../map/pve.api';
+import { getPvpMovements } from '../../map/pvp.api';
 import { getResearchOverview } from '../../research/research.api';
-import { getSpyOverview } from '../../scouting/scouting.api';
+import { getSpyMissions, getSpyOverview, SPY_MISSION_LABELS } from '../../scouting/scouting.api';
 import { useAppStore } from '../../../stores/app.store';
 
 export function ActiveTimersPanel() {
@@ -62,6 +65,46 @@ export function ActiveTimersPanel() {
     refetchInterval: 5000,
   });
 
+  const armyMovementsQuery = useQuery({
+    queryKey: ['army-movements'],
+    queryFn: getArmyMovements,
+    enabled: Boolean(selectedCityId),
+    retry: 1,
+    refetchInterval: 5000,
+  });
+
+  const pvpMovementsQuery = useQuery({
+    queryKey: ['pvp-movements'],
+    queryFn: getPvpMovements,
+    enabled: Boolean(selectedCityId),
+    retry: 1,
+    refetchInterval: 5000,
+  });
+
+  const navalMovementsQuery = useQuery({
+    queryKey: ['naval-movements'],
+    queryFn: getNavalMovements,
+    enabled: Boolean(selectedCityId),
+    retry: 1,
+    refetchInterval: 5000,
+  });
+
+  const blockadesQuery = useQuery({
+    queryKey: ['naval-blockades'],
+    queryFn: getActiveBlockades,
+    enabled: Boolean(selectedCityId),
+    retry: 1,
+    refetchInterval: 5000,
+  });
+
+  const spyMissionsQuery = useQuery({
+    queryKey: ['spy-missions'],
+    queryFn: getSpyMissions,
+    enabled: Boolean(selectedCityId),
+    retry: 1,
+    refetchInterval: 5000,
+  });
+
   if (!selectedCityId) {
     return null;
   }
@@ -75,13 +118,33 @@ export function ActiveTimersPanel() {
   const activeMovements = (movementsQuery.data ?? []).filter(
     (movement) => isActiveMovementStatus(movement.status),
   );
+  const activeArmyMovements = (armyMovementsQuery.data ?? []).filter((movement) =>
+    isActiveMovementStatus(movement.status),
+  );
+  const activePvpMovements = (pvpMovementsQuery.data ?? []).filter((movement) =>
+    isActiveMovementStatus(movement.status),
+  );
+  const activeNavalMovements = (navalMovementsQuery.data ?? []).filter((movement) =>
+    isActiveMovementStatus(movement.status),
+  );
+  const activeBlockades = (blockadesQuery.data ?? []).filter((blockade) => blockade.status === 'active');
+  const activeSpyMissions = (spyMissionsQuery.data?.missions ?? []).filter(
+    (mission) => isActiveMovementStatus(mission.status) && Boolean(mission.arrivalTime),
+  );
   const trainingCount =
     Number(Boolean(troopTraining)) + Number(Boolean(fleetTraining)) + spyTraining.length;
+  const movementCount =
+    activeMovements.length +
+    activeArmyMovements.length +
+    activePvpMovements.length +
+    activeNavalMovements.length +
+    activeBlockades.length +
+    activeSpyMissions.length;
   const activeCount =
     Number(Boolean(construction)) +
     Number(Boolean(research)) +
     trainingCount +
-    activeMovements.length;
+    movementCount;
   const isLoadingTimers =
     activeCount === 0 &&
     (cityOverviewQuery.isPending ||
@@ -89,7 +152,12 @@ export function ActiveTimersPanel() {
       barracksQuery.isPending ||
       shipyardQuery.isPending ||
       spyQuery.isPending ||
-      movementsQuery.isPending);
+      movementsQuery.isPending ||
+      armyMovementsQuery.isPending ||
+      pvpMovementsQuery.isPending ||
+      navalMovementsQuery.isPending ||
+      blockadesQuery.isPending ||
+      spyMissionsQuery.isPending);
 
   const refreshTimers = () => {
     void queryClient.invalidateQueries({ queryKey: ['city-overview', selectedCityId] });
@@ -102,6 +170,11 @@ export function ActiveTimersPanel() {
     void queryClient.invalidateQueries({ queryKey: ['reports'] });
     void queryClient.invalidateQueries({ queryKey: ['notifications'] });
     void queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
+    void queryClient.invalidateQueries({ queryKey: ['army-movements'] });
+    void queryClient.invalidateQueries({ queryKey: ['pvp-movements'] });
+    void queryClient.invalidateQueries({ queryKey: ['naval-movements'] });
+    void queryClient.invalidateQueries({ queryKey: ['naval-blockades'] });
+    void queryClient.invalidateQueries({ queryKey: ['spy-missions'] });
   };
 
   return (
@@ -188,12 +261,77 @@ export function ActiveTimersPanel() {
               onComplete={refreshTimers}
             />
           ))}
-          {activeMovements.length === 0 ? (
+          {activeArmyMovements.map((movement) => (
+            <TimerRow
+              key={movement.id}
+              label="PvE Attack"
+              title={`${movement.originCity.name} to ${movement.camp?.name ?? 'Barbarian Village'}${
+                movement.status === 'returning' ? ' returning' : ''
+              }`}
+              finishesAt={
+                movement.status === 'returning'
+                  ? (movement.returnArrivalTime ?? movement.arrivalTime)
+                  : movement.arrivalTime
+              }
+              onComplete={refreshTimers}
+            />
+          ))}
+          {activePvpMovements.map((movement) => (
+            <TimerRow
+              key={movement.id}
+              label="PvP Attack"
+              title={`${movement.originCity.name} to ${movement.targetCity?.name ?? 'target city'}${
+                movement.status === 'returning' ? ' returning' : ''
+              }`}
+              finishesAt={
+                movement.status === 'returning'
+                  ? (movement.returnArrivalTime ?? movement.arrivalTime)
+                  : movement.arrivalTime
+              }
+              onComplete={refreshTimers}
+            />
+          ))}
+          {activeNavalMovements.map((movement) => (
+            <TimerRow
+              key={movement.id}
+              label="Naval"
+              title={`${movement.originCity.name} to ${movement.targetCity.name}${
+                movement.status === 'returning' ? ' returning' : ''
+              }`}
+              finishesAt={
+                movement.status === 'returning'
+                  ? (movement.returnArrivalTime ?? movement.arrivalTime)
+                  : movement.arrivalTime
+              }
+              onComplete={refreshTimers}
+            />
+          ))}
+          {activeBlockades.map((blockade) => (
+            <TimerRow
+              key={blockade.id}
+              label="Blockade"
+              title="Active naval blockade"
+              finishesAt={blockade.endsAt}
+              onComplete={refreshTimers}
+            />
+          ))}
+          {activeSpyMissions.map((mission) => (
+            <TimerRow
+              key={mission.id}
+              label="Scouting"
+              title={`${mission.originCityName ?? 'Origin city'} to ${
+                mission.targetCityName ?? 'target city'
+              } - ${SPY_MISSION_LABELS[mission.missionType]}`}
+              finishesAt={mission.arrivalTime ?? new Date().toISOString()}
+              onComplete={refreshTimers}
+            />
+          ))}
+          {movementCount === 0 ? (
             <IdleRow
-              label="Transport"
-              title="No resource transport active"
-              to="/transport"
-              action="Send"
+              label="Movement"
+              title="No transport, attack, naval, or scouting active"
+              to="/map"
+              action="Map"
             />
           ) : null}
         </div>
@@ -209,7 +347,7 @@ export function ActiveTimersPanel() {
             action="Train"
           />
           <IdleRow label="Research" title="No technology search active" to="/research" action="Start" />
-          <IdleRow label="Transport" title="No resource transport active" to="/transport" action="Send" />
+          <IdleRow label="Movement" title="No transport, attack, naval, or scouting active" to="/map" action="Map" />
         </div>
       ) : null}
     </Panel>

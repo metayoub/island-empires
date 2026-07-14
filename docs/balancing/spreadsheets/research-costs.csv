@@ -1,7 +1,9 @@
 technology,tier,cost,duration_seconds,target_day
-Improved Woodcutting,1,50,60,2
-Basic Storage,1,75,90,2
-Basic Training,1,100,120,3
-Basic Navigation,1,100,120,5
-Basic Architecture,1,100,120,4
-Organized Labor,2,180,210,8
+Improved Woodcutting,1,900,1800,2
+Basic Storage,1,900,1800,2
+Basic Training,1,900,1800,3
+Basic Navigation,1,900,1800,5
+Basic Architecture,1,900,1800,4
+Organized Labor,2,3200,7200,8
+Iron Weapons,3,8200,21600,10
+Naval Tactics,4,16500,43200,14

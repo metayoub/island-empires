@@ -33,7 +33,7 @@ export function calculateBuildingUpgradeCost(input: {
     ? input.definition.costMultiplier
     : 1;
 
-  return RESOURCE_KEYS.reduce<ResourceCost>(
+  const baseCost = RESOURCE_KEYS.reduce<ResourceCost>(
     (cost, resourceType) => {
       const baseValue = input.definition.baseCost[resourceType] ?? 0;
       cost[resourceType] = Math.max(0, Math.floor(baseValue * multiplier ** level));
@@ -41,6 +41,47 @@ export function calculateBuildingUpgradeCost(input: {
     },
     { wood: 0, gold: 0, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
   );
+
+  const advancedSurcharge = calculateAdvancedBuildingUpgradeSurcharge({
+    currentLevel: level,
+    baseCost,
+  });
+
+  return RESOURCE_KEYS.reduce<ResourceCost>(
+    (cost, resourceType) => {
+      cost[resourceType] = baseCost[resourceType] + advancedSurcharge[resourceType];
+      return cost;
+    },
+    { wood: 0, gold: 0, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
+  );
+}
+
+function calculateAdvancedBuildingUpgradeSurcharge(input: {
+  currentLevel: number;
+  baseCost: ResourceCost;
+}): ResourceCost {
+  const level = Math.max(0, input.currentLevel);
+  const surcharge = { wood: 0, gold: 0, marble: 0, wine: 0, crystal: 0, sulfur: 0 };
+  if (level < 10) {
+    return surcharge;
+  }
+
+  const coreCost = input.baseCost.wood + input.baseCost.gold;
+  const advancedLevel = level - 9;
+  surcharge.marble = Math.floor(coreCost * 0.18 * advancedLevel);
+
+  if (level >= 20) {
+    const regionalLevel = level - 19;
+    surcharge.crystal = Math.floor(coreCost * 0.08 * regionalLevel);
+    surcharge.sulfur = Math.floor(coreCost * 0.06 * regionalLevel);
+  }
+
+  if (level >= 30) {
+    const imperialLevel = level - 29;
+    surcharge.wine = Math.floor(coreCost * 0.05 * imperialLevel);
+  }
+
+  return surcharge;
 }
 
 export function calculateBuildingUpgradeDurationSeconds(input: {

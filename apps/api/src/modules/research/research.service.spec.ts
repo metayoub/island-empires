@@ -164,8 +164,8 @@ describe('ResearchService', () => {
 
     const result = await service.recalculateResearchPoints(PLAYER_ID);
 
-    expect(result.researchPointsPerHour).toBe(20);
-    expect(result.researchPoints).toBe(20);
+    expect(result.researchPointsPerHour).toBe(25);
+    expect(result.researchPoints).toBe(25);
   });
 
   it('disables research production without an Academy', async () => {
@@ -179,12 +179,12 @@ describe('ResearchService', () => {
   });
 
   it('starts research and deducts the technology cost', async () => {
-    const { prisma, state } = buildFakePrisma({ researchPoints: 100, scientists: 0 });
+    const { prisma, state } = buildFakePrisma({ researchPoints: 1000, scientists: 0 });
     const service = await createService(prisma);
 
     const result = await service.startResearch(PLAYER_ID, 'improved_woodcutting');
 
-    expect(result.researchPoints).toBe(50);
+    expect(result.researchPoints).toBe(100);
     expect(result.activeResearch.technologyId).toBe('improved_woodcutting');
     expect(state.activeJob?.status).toBe('active');
   });
@@ -199,7 +199,7 @@ describe('ResearchService', () => {
   });
 
   it('rejects starting a locked technology', async () => {
-    const { prisma } = buildFakePrisma({ researchPoints: 500, scientists: 0 });
+    const { prisma } = buildFakePrisma({ researchPoints: 1000, scientists: 0 });
     const service = await createService(prisma);
 
     await expect(service.startResearch(PLAYER_ID, 'basic_architecture')).rejects.toThrow(
@@ -208,7 +208,7 @@ describe('ResearchService', () => {
   });
 
   it('rejects starting a second research while one is active', async () => {
-    const { prisma } = buildFakePrisma({ researchPoints: 500, scientists: 0 });
+    const { prisma } = buildFakePrisma({ researchPoints: 1000, scientists: 0 });
     const service = await createService(prisma);
 
     await service.startResearch(PLAYER_ID, 'improved_woodcutting');
@@ -220,7 +220,7 @@ describe('ResearchService', () => {
 
   it('rejects starting an already completed technology', async () => {
     const { prisma } = buildFakePrisma({
-      researchPoints: 500,
+      researchPoints: 1000,
       scientists: 0,
       completedTechnologyIds: ['improved_woodcutting'],
     });
@@ -232,7 +232,7 @@ describe('ResearchService', () => {
   });
 
   it('completes a due research job idempotently, unlocking the technology once', async () => {
-    const { prisma, state } = buildFakePrisma({ researchPoints: 500, scientists: 0 });
+    const { prisma, state } = buildFakePrisma({ researchPoints: 1000, scientists: 0 });
     const service = await createService(prisma);
 
     await service.startResearch(PLAYER_ID, 'improved_woodcutting');

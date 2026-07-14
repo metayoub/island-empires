@@ -919,6 +919,7 @@ export type MarketplaceOfferSummary = {
     x: number | null;
     y: number | null;
   };
+  isOwnOffer: boolean;
   acceptedByPlayerId?: string | null;
   acceptedByCityId?: string | null;
   expiresAt: string;

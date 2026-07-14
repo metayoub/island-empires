@@ -167,6 +167,7 @@ export class AdvancedSearchService {
           x: offer.creatorCity.island?.x ?? null,
           y: offer.creatorCity.island?.y ?? null,
         },
+        isOwnOffer: offer.creatorPlayerId === player.id,
         acceptedByPlayerId: offer.acceptedByPlayerId,
         acceptedByCityId: offer.acceptedByCityId,
         expiresAt: offer.expiresAt.toISOString(),

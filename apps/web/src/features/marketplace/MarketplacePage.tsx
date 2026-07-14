@@ -34,13 +34,23 @@ function OfferRow({
   onAccept?: (offer: MarketplaceOfferSummary) => void;
   onCancel?: (offer: MarketplaceOfferSummary) => void;
 }) {
+  const isOwnBrowseOffer = mode === 'browse' && offer.isOwnOffer;
+  const acceptDisabled = offer.status !== 'active' || isOwnBrowseOffer;
+
   return (
     <Card className="grid gap-3 p-4 md:grid-cols-[1.5fr_1fr_auto] md:items-center">
       <div>
-        <p className="text-sm font-black text-text">
-          {offer.offeredAmount.toLocaleString()} {formatResource(offer.offeredResource)} for{' '}
-          {offer.requestedAmount.toLocaleString()} {formatResource(offer.requestedResource)}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-black text-text">
+            {offer.offeredAmount.toLocaleString()} {formatResource(offer.offeredResource)} for{' '}
+            {offer.requestedAmount.toLocaleString()} {formatResource(offer.requestedResource)}
+          </p>
+          {offer.isOwnOffer ? (
+            <span className="rounded-sm border border-primary/30 bg-primary/10 px-2 py-0.5 text-[0.7rem] font-black uppercase tracking-wide text-primary">
+              Your offer
+            </span>
+          ) : null}
+        </div>
         <p className="mt-1 text-xs font-semibold text-muted">
           {offer.creator.playerName} · {offer.creatorCity.name}
           {offer.creatorCity.x !== null && offer.creatorCity.y !== null ? ` (${offer.creatorCity.x}, ${offer.creatorCity.y})` : ''}
@@ -52,8 +62,8 @@ function OfferRow({
       </div>
       <div className="flex gap-2">
         {mode === 'browse' ? (
-          <Button className="px-3 py-1.5" onClick={() => onAccept?.(offer)} disabled={offer.status !== 'active'}>
-            Accept
+          <Button className="px-3 py-1.5" onClick={() => onAccept?.(offer)} disabled={acceptDisabled}>
+            {isOwnBrowseOffer ? 'Own offer' : 'Accept'}
           </Button>
         ) : (
           <Button className="px-3 py-1.5" variant="secondary" onClick={() => onCancel?.(offer)} disabled={offer.status !== 'active'}>

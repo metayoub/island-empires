@@ -7,8 +7,8 @@ import {
 
 describe('calculateResearchProduction', () => {
   const baseInput = {
-    researchPerScientistPerHour: 4,
-    academyBonusPerLevelAboveOne: 0.1,
+    researchPerScientistPerHour: 5,
+    academyBonusPerLevelAboveOne: 0.25,
   };
 
   it('produces no research points with 0 scientists', () => {
@@ -28,15 +28,15 @@ describe('calculateResearchProduction', () => {
   it('gives base production at Academy level 1', () => {
     const result = calculateResearchProduction({ ...baseInput, scientists: 5, academyLevel: 1 });
 
-    expect(result.researchPointsPerHour).toBe(20);
+    expect(result.researchPointsPerHour).toBe(25);
     expect(result.academyBonusMultiplier).toBe(1);
   });
 
   it('applies the Academy bonus at level 2', () => {
     const result = calculateResearchProduction({ ...baseInput, scientists: 5, academyLevel: 2 });
 
-    expect(result.researchPointsPerHour).toBe(22);
-    expect(result.academyBonusMultiplier).toBeCloseTo(1.1);
+    expect(result.researchPointsPerHour).toBe(31);
+    expect(result.academyBonusMultiplier).toBeCloseTo(1.25);
   });
 });
 
@@ -111,15 +111,15 @@ describe('getTechnologyState', () => {
 describe('canStartResearch', () => {
   const baseInput = {
     technologyId: 'improved_woodcutting',
-    technologyCost: 50,
-    currentResearchPoints: 60,
+    technologyCost: 900,
+    currentResearchPoints: 1000,
     isAlreadyCompleted: false,
     isAlreadyResearching: false,
     requirementsCompleted: true,
   };
 
   it('cannot start research without enough points', () => {
-    const result = canStartResearch({ ...baseInput, currentResearchPoints: 10 });
+    const result = canStartResearch({ ...baseInput, currentResearchPoints: 500 });
 
     expect(result.canStart).toBe(false);
     expect(result.reason).toBeDefined();
