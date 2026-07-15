@@ -263,8 +263,8 @@ function MapLegend() {
         <span>
           <strong className="text-warning">Full</strong> means all city slots are occupied.
         </span>
-        <span>All islands are selectable; use the compass to navigate the wider ocean.</span>
-        <span>The compass moves across the larger ocean map.</span>
+        <span>All islands are selectable; drag the ocean or use the compass to navigate.</span>
+        <span>The world can hold up to 1,000 widely spaced islands.</span>
         <span>Open an island to see city slots and the Barbarian Village.</span>
       </div>
     </Panel>
@@ -273,6 +273,7 @@ function MapLegend() {
 
 export function WorldMapPage() {
   const navigate = useNavigate();
+  const selectedCityId = useAppStore((state) => state.selectedCityId);
   const setSelectedCityId = useAppStore((state) => state.setSelectedCityId);
   const [selectedIslandId, setSelectedIslandId] = useState<string | null>(null);
   const [mode, setMode] = useState<WorldMapMode>('island-selection');
@@ -286,7 +287,7 @@ export function WorldMapPage() {
   });
 
   const worldMapQuery = useQuery({
-    queryKey: ['world-map', bootstrapQuery.data?.world.id],
+    queryKey: ['world-map', bootstrapQuery.data?.world.id, selectedCityId],
     queryFn: () => getWorldMap(bootstrapQuery.data?.world.id ?? ''),
     enabled: Boolean(bootstrapQuery.data?.world.id),
     retry: 1,
@@ -319,13 +320,19 @@ export function WorldMapPage() {
 
   useEffect(() => {
     if (worldMapQuery.data && !selectedIslandId) {
-      setSelectedIslandId(
-        worldMapQuery.data.islands.find((island) => island.hasPlayerCity)?.id ??
-          worldMapQuery.data.islands[0]?.id ??
-          null,
-      );
+      setSelectedIslandId(worldMapQuery.data.selectedCity.islandId);
+      setMapCenterRequestKey((current) => current + 1);
     }
   }, [selectedIslandId, worldMapQuery.data]);
+
+  useEffect(() => {
+    if (!worldMapQuery.data || worldMapQuery.data.selectedCity.id !== selectedCityId) {
+      return;
+    }
+
+    setSelectedIslandId(worldMapQuery.data.selectedCity.islandId);
+    setMapCenterRequestKey((current) => current + 1);
+  }, [selectedCityId, worldMapQuery.data]);
 
   useEffect(() => {
     setMode('island-selection');
@@ -354,7 +361,10 @@ export function WorldMapPage() {
     );
   }
 
-  const playerIsland = worldMapQuery.data.islands.find((island) => island.hasPlayerCity);
+  const playerIsland =
+    worldMapQuery.data.islands.find(
+      (island) => island.id === worldMapQuery.data.selectedCity.islandId,
+    ) ?? worldMapQuery.data.islands.find((island) => island.hasPlayerCity);
   const selectedSlot =
     islandDetailQuery.data?.slots.find((slot) => slot.slotIndex === selectedSlotIndex) ?? null;
 

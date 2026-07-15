@@ -2,13 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MAP_CONFIG = void 0;
 exports.MAP_CONFIG = {
-    width: 5,
-    height: 5,
+    width: 50000,
+    height: 34000,
+    islandCount: 1000,
     defaultIslandSlots: 12,
     startingIsland: {
-        x: 2,
-        y: 2,
+        x: 25000,
+        y: 17000,
     },
     startingSlotIndex: 0,
-    baseSecondsPerDistance: 300,
+    baseSecondsPerDistance: 4,
 };

@@ -28,7 +28,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { DevelopmentStateService } from '../players/development-state.service';
 import { QuestsService } from '../quests/quests.service';
-import { ensureWorldMapGenerated } from './world-map-generation';
+import { ensureWorldMapGenerated, getWorldMapDimensions } from './world-map-generation';
 
 const DEFAULT_WOOD_WORKERS = 5;
 const DEFAULT_GOLD_WORKERS = 5;
@@ -116,14 +116,16 @@ export class MapService {
 
     await this.questsService.handleQuestTrigger(bootstrap.player.id, 'world_map_opened');
 
+    const mapDimensions = getWorldMapDimensions();
+
     return {
       world: {
         id: bootstrap.world.id,
         name: bootstrap.world.name,
       },
       map: {
-        width: MAP_CONFIG.width,
-        height: MAP_CONFIG.height,
+        width: mapDimensions.width,
+        height: mapDimensions.height,
       },
       selectedCity: {
         id: selectedCity.id,

@@ -1,11 +1,11 @@
 export const MAP_CONFIG = {
-  width: 1000,
-  height: 680,
-  islandCount: 100,
+  width: 50000,
+  height: 34000,
+  islandCount: 1000,
   defaultIslandSlots: 12,
   startingIsland: {
-    x: 500,
-    y: 340,
+    x: 25000,
+    y: 17000,
   },
   startingSlotIndex: 0,
   baseSecondsPerDistance: 4,

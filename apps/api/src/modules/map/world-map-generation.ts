@@ -6,6 +6,30 @@ const LUXURY_RESOURCES = ['marble', 'wine', 'crystal', 'sulfur'] as const;
 type WorldMapClient = Pick<Prisma.TransactionClient, 'island'>;
 
 type ArchipelagoPoint = { x: number; y: number; name: string };
+type WorldMapDimensions = { width: number; height: number };
+type GridLayout = WorldMapDimensions & {
+  columns: number;
+  rows: number;
+  cellWidth: number;
+  cellHeight: number;
+};
+
+const BASE_MAP_WIDTH = 1000;
+const BASE_MAP_HEIGHT = 680;
+const PREVIOUS_MAP_SIZES = [
+  { width: 1000, height: 680 },
+  { width: 5000, height: 3400 },
+  { width: 15000, height: 10200 },
+  { width: 50000, height: 34000 },
+] as const;
+const MIN_DISTANCE_SCALE = 0.038;
+const MIN_VISUAL_HORIZONTAL_FACTOR = 1.4;
+const MIN_VISUAL_VERTICAL_FACTOR = 0.55;
+const GRID_PADDING = 2200;
+const GRID_CELL_WIDTH = 2200;
+const GRID_CELL_HEIGHT = 1200;
+const GRID_JITTER_X = 260;
+const GRID_JITTER_Y = 120;
 
 const CURATED_ARCHIPELAGO_POINTS: ArchipelagoPoint[] = [
   { x: 500, y: 340, name: 'New Haven Atoll' },
@@ -106,20 +130,6 @@ const GENERATED_NAME_SUFFIXES = [
   'Way',
 ] as const;
 
-function halton(index: number, base: number): number {
-  let result = 0;
-  let fraction = 1 / base;
-  let current = index;
-
-  while (current > 0) {
-    result += fraction * (current % base);
-    current = Math.floor(current / base);
-    fraction /= base;
-  }
-
-  return result;
-}
-
 function getGeneratedIslandName(index: number): string {
   const prefix = GENERATED_NAME_PREFIXES[index % GENERATED_NAME_PREFIXES.length];
   const suffix =
@@ -130,40 +140,180 @@ function getGeneratedIslandName(index: number): string {
   return `${prefix}${suffix}`;
 }
 
-function hasNearbyPoint(points: ArchipelagoPoint[], x: number, y: number, minDistance: number): boolean {
-  const minDistanceSquared = minDistance * minDistance;
+function scaleBaseCoordinate(value: number, baseSize: number, targetSize: number): number {
+  return Math.round((value / baseSize) * targetSize);
+}
 
-  return points.some((point) => {
-    const deltaX = point.x - x;
-    const deltaY = point.y - y;
-    return deltaX * deltaX + deltaY * deltaY < minDistanceSquared;
-  });
+function scaleCuratedPoint(point: ArchipelagoPoint): ArchipelagoPoint {
+  return {
+    ...point,
+    x: scaleBaseCoordinate(point.x, BASE_MAP_WIDTH, getWorldMapDimensions().width),
+    y: scaleBaseCoordinate(point.y, BASE_MAP_HEIGHT, getWorldMapDimensions().height),
+  };
+}
+
+function getPreviousMapSize(point: { x: number; y: number }) {
+  const currentDimensions = getWorldMapDimensions();
+
+  return PREVIOUS_MAP_SIZES.find(
+    (size) =>
+      currentDimensions.width > size.width &&
+      currentDimensions.height > size.height &&
+      point.x <= size.width &&
+      point.y <= size.height,
+  );
+}
+
+function isPreviousMapCoordinate(point: { x: number; y: number }): boolean {
+  return Boolean(getPreviousMapSize(point));
+}
+
+function getMinimumIslandDistance(): number {
+  return Math.max(900, Math.round(Math.min(getWorldMapDimensions().width, getWorldMapDimensions().height) * 0.012));
+}
+
+function conflictsWithPoint(
+  point: { x: number; y: number },
+  candidate: { x: number; y: number },
+  minDistance: number,
+): boolean {
+  const deltaX = Math.abs(point.x - candidate.x);
+  const deltaY = Math.abs(point.y - candidate.y);
+  const minDistanceSquared = minDistance * minDistance;
+  const minVisualHorizontal = minDistance * MIN_VISUAL_HORIZONTAL_FACTOR;
+  const minVisualVertical = minDistance * MIN_VISUAL_VERTICAL_FACTOR;
+
+  return (
+    deltaX * deltaX + deltaY * deltaY < minDistanceSquared ||
+    (deltaX < minVisualHorizontal && deltaY < minVisualVertical)
+  );
+}
+
+function hasConflictingPoint(
+  points: Array<{ x: number; y: number }>,
+  x: number,
+  y: number,
+  minDistance: number,
+): boolean {
+  return points.some((point) => conflictsWithPoint(point, { x, y }, minDistance));
+}
+
+function getStableNumber(input: string): number {
+  let hash = 2166136261;
+
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function getGridLayout(targetCount: number = MAP_CONFIG.islandCount): GridLayout {
+  const capacityCount = targetCount + Math.ceil(Math.sqrt(targetCount)) * 4;
+  const aspectRatio = MAP_CONFIG.width / MAP_CONFIG.height;
+  const columns = Math.max(1, Math.ceil(Math.sqrt(capacityCount * aspectRatio)));
+  const rows = Math.max(1, Math.ceil(capacityCount / columns));
+
+  return {
+    columns,
+    rows,
+    cellWidth: GRID_CELL_WIDTH,
+    cellHeight: GRID_CELL_HEIGHT,
+    width: Math.max(MAP_CONFIG.width, GRID_PADDING * 2 + (columns - 1) * GRID_CELL_WIDTH),
+    height: Math.max(MAP_CONFIG.height, GRID_PADDING * 2 + (rows - 1) * GRID_CELL_HEIGHT),
+  };
+}
+
+export function getWorldMapDimensions(targetCount: number = MAP_CONFIG.islandCount): WorldMapDimensions {
+  const { width, height } = getGridLayout(targetCount);
+
+  return { width, height };
+}
+
+function getGridPoint({
+  column,
+  row,
+  index,
+  name,
+  layout,
+}: {
+  column: number;
+  row: number;
+  index: number;
+  name: string;
+  layout: GridLayout;
+}): ArchipelagoPoint {
+  const seed = getStableNumber(`${index}:${name}:${column}:${row}`);
+  const jitterX = index === 0 ? 0 : (seed % (GRID_JITTER_X * 2 + 1)) - GRID_JITTER_X;
+  const jitterY =
+    index === 0 ? 0 : (Math.floor(seed / 997) % (GRID_JITTER_Y * 2 + 1)) - GRID_JITTER_Y;
+
+  return {
+    name,
+    x: Math.round(GRID_PADDING + column * layout.cellWidth + jitterX),
+    y: Math.round(GRID_PADDING + row * layout.cellHeight + jitterY),
+  };
 }
 
 function buildArchipelagoPoints(targetCount: number): ArchipelagoPoint[] {
-  const points = CURATED_ARCHIPELAGO_POINTS.slice(0, targetCount);
-  const occupiedCoordinates = new Set(points.map((point) => `${point.x}:${point.y}`));
-  let candidateIndex = 1;
-  let generatedIndex = 0;
+  const layout = getGridLayout(targetCount);
+  const centerColumn = Math.floor(layout.columns / 2);
+  const centerRow = Math.floor(layout.rows / 2);
+  const cells = Array.from({ length: layout.columns * layout.rows }, (_, index) => {
+    const column = index % layout.columns;
+    const row = Math.floor(index / layout.columns);
 
-  while (points.length < targetCount) {
-    const minDistance = points.length < 72 ? 42 : 30;
-    const x = 24 + Math.round(halton(candidateIndex, 2) * (MAP_CONFIG.width - 48));
-    const y = 24 + Math.round(halton(candidateIndex, 3) * (MAP_CONFIG.height - 48));
-    const coordinateKey = `${x}:${y}`;
-    candidateIndex += 1;
+    return {
+      column,
+      row,
+      distanceFromCenter:
+        Math.abs(column - centerColumn) + Math.abs(row - centerRow),
+      tieBreaker: getStableNumber(`${column}:${row}`),
+    };
+  }).sort((left, right) => {
+    const distanceDelta = left.distanceFromCenter - right.distanceFromCenter;
+    if (distanceDelta !== 0) {
+      return distanceDelta;
+    }
 
-    if (occupiedCoordinates.has(coordinateKey) || hasNearbyPoint(points, x, y, minDistance)) {
+    return left.tieBreaker - right.tieBreaker;
+  });
+
+  const points: ArchipelagoPoint[] = [{
+    name: CURATED_ARCHIPELAGO_POINTS[0]?.name ?? getGeneratedIslandName(0),
+    x: MAP_CONFIG.startingIsland.x,
+    y: MAP_CONFIG.startingIsland.y,
+  }];
+  const minDistance = getMinimumIslandDistance();
+
+  for (const cell of cells) {
+    if (points.length >= targetCount) {
+      break;
+    }
+
+    const index = points.length;
+    const candidate = getGridPoint({
+      ...cell,
+      index,
+      layout,
+      name:
+        index < CURATED_ARCHIPELAGO_POINTS.length
+          ? CURATED_ARCHIPELAGO_POINTS[index].name
+          : getGeneratedIslandName(index - CURATED_ARCHIPELAGO_POINTS.length),
+    });
+
+    if (hasConflictingPoint(points, candidate.x, candidate.y, minDistance)) {
       continue;
     }
 
-    occupiedCoordinates.add(coordinateKey);
-    points.push({
-      x,
-      y,
-      name: getGeneratedIslandName(generatedIndex),
-    });
-    generatedIndex += 1;
+    points.push(candidate);
+  }
+
+  if (points.length < targetCount) {
+    throw new Error(
+      `Unable to generate ${targetCount} non-overlapping islands in ${layout.width}x${layout.height}.`,
+    );
   }
 
   return points;
@@ -238,6 +388,50 @@ async function backfillArchipelago(client: WorldMapClient, worldId: string): Pro
     );
   }
 
+  const previousMapIslands = isLegacyGrid
+    ? []
+    : existingIslands.filter((island) => isPreviousMapCoordinate(island));
+
+  if (previousMapIslands.length > 0) {
+    const occupiedCoordinates = new Set(
+      existingIslands.map((island) => `${island.x}:${island.y}`),
+    );
+    let fallbackPointIndex = 0;
+
+    for (const island of previousMapIslands) {
+      const previousMapSize = getPreviousMapSize(island);
+
+      if (!previousMapSize) {
+        continue;
+      }
+
+      occupiedCoordinates.delete(`${island.x}:${island.y}`);
+      let targetX = scaleBaseCoordinate(island.x, previousMapSize.width, MAP_CONFIG.width);
+      let targetY = scaleBaseCoordinate(island.y, previousMapSize.height, MAP_CONFIG.height);
+      let coordinateKey = `${targetX}:${targetY}`;
+
+      while (occupiedCoordinates.has(coordinateKey)) {
+        const fallbackPoint = ARCHIPELAGO_POINTS[fallbackPointIndex];
+        fallbackPointIndex += 1;
+        targetX = fallbackPoint.x;
+        targetY = fallbackPoint.y;
+        coordinateKey = `${targetX}:${targetY}`;
+      }
+
+      occupiedCoordinates.add(coordinateKey);
+
+      await client.island.update({
+        where: { id: island.id },
+        data: {
+          x: targetX,
+          y: targetY,
+        },
+      });
+    }
+  }
+
+  await repairCrowdedIslands(client, worldId);
+
   const existingAfterBackfill = await client.island.findMany({
     where: { worldId },
     orderBy: [{ y: 'asc' }, { x: 'asc' }],
@@ -245,8 +439,14 @@ async function backfillArchipelago(client: WorldMapClient, worldId: string): Pro
   const occupiedCoordinates = new Set(
     existingAfterBackfill.map((island) => `${island.x}:${island.y}`),
   );
+  const occupiedNames = new Set(
+    existingAfterBackfill.map((island) => island.name).filter((name): name is string => Boolean(name)),
+  );
   const missingIslands = ARCHIPELAGO_POINTS.slice(0, MAP_CONFIG.islandCount)
-    .filter((point) => !occupiedCoordinates.has(`${point.x}:${point.y}`))
+    .filter(
+      (point) =>
+        !occupiedCoordinates.has(`${point.x}:${point.y}`) && !occupiedNames.has(point.name),
+    )
     .map((point, index) => buildIsland(worldId, point, existingAfterBackfill.length + index));
 
   if (missingIslands.length > 0) {
@@ -254,6 +454,59 @@ async function backfillArchipelago(client: WorldMapClient, worldId: string): Pro
       data: missingIslands,
       skipDuplicates: true,
     });
+  }
+}
+
+async function repairCrowdedIslands(client: WorldMapClient, worldId: string): Promise<void> {
+  const islands = await client.island.findMany({
+    where: { worldId },
+    orderBy: [{ y: 'asc' }, { x: 'asc' }],
+  });
+  const minDistance = getMinimumIslandDistance();
+  const occupiedCoordinates = new Set(islands.map((island) => `${island.x}:${island.y}`));
+  const acceptedPoints: Array<{ x: number; y: number }> = [];
+  let fallbackPointIndex = 0;
+
+  for (const island of islands) {
+    const originalCoordinateKey = `${island.x}:${island.y}`;
+    const needsRepair = acceptedPoints.some((point) =>
+      conflictsWithPoint(point, island, minDistance),
+    );
+
+    if (!needsRepair) {
+      acceptedPoints.push({ x: island.x, y: island.y });
+      continue;
+    }
+
+    occupiedCoordinates.delete(originalCoordinateKey);
+
+    let fallbackPoint = ARCHIPELAGO_POINTS[fallbackPointIndex];
+    while (
+      fallbackPoint &&
+      (occupiedCoordinates.has(`${fallbackPoint.x}:${fallbackPoint.y}`) ||
+        hasConflictingPoint(acceptedPoints, fallbackPoint.x, fallbackPoint.y, minDistance))
+    ) {
+      fallbackPointIndex += 1;
+      fallbackPoint = ARCHIPELAGO_POINTS[fallbackPointIndex];
+    }
+
+    if (!fallbackPoint) {
+      occupiedCoordinates.add(originalCoordinateKey);
+      acceptedPoints.push({ x: island.x, y: island.y });
+      continue;
+    }
+
+    await client.island.update({
+      where: { id: island.id },
+      data: {
+        x: fallbackPoint.x,
+        y: fallbackPoint.y,
+      },
+    });
+
+    occupiedCoordinates.add(`${fallbackPoint.x}:${fallbackPoint.y}`);
+    acceptedPoints.push({ x: fallbackPoint.x, y: fallbackPoint.y });
+    fallbackPointIndex += 1;
   }
 }
 
