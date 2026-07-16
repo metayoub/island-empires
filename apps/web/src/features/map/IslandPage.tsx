@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { IslandSlotSummary } from '@island-empires/shared-types';
+import type { IslandSlotSummary, PveRewards } from '@island-empires/shared-types';
 import islandViewBackground from '../../assets/img/island/0.png';
 import barbarianVillageArt from '../../assets/img/island/generated/barbarian_village.png';
 import cityArt from '../../assets/img/island/generated/city.png';
@@ -32,6 +32,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   crystal: 'Crystal',
   sulfur: 'Sulfur',
 };
+const REWARD_RESOURCE_KEYS: Array<keyof PveRewards> = ['wood', 'gold', 'marble', 'sulfur', 'crystal', 'wine'];
 
 const RESOURCE_ICONS: Record<string, string> = {
   marble: marbleIcon,
@@ -39,6 +40,13 @@ const RESOURCE_ICONS: Record<string, string> = {
   crystal: crystalIcon,
   sulfur: sulfurIcon,
 };
+
+function formatVillageRewards(rewards: PveRewards): string {
+  const text = REWARD_RESOURCE_KEYS.filter((resourceType) => rewards[resourceType] > 0)
+    .map((resourceType) => `${rewards[resourceType]} ${RESOURCE_LABELS[resourceType]}`)
+    .join(' · ');
+  return text || 'No resources';
+}
 
 type ResourceSiteKind = 'wood' | 'marble' | 'wine' | 'crystal' | 'sulfur';
 
@@ -222,7 +230,7 @@ function SelectedCityPanel({
         <div className="grid gap-3 sm:grid-cols-3">
           <InfoTile label="Level" value={village.level.toString()} />
           <InfoTile label="Strength" value={village.enemyStrength.toString()} />
-          <InfoTile label="Loot" value={`${village.rewards.wood}W ${village.rewards.gold}G`} />
+          <InfoTile label="Loot" value={formatVillageRewards(village.rewards)} />
         </div>
         <Button onClick={() => onAttackVillage(village.id)} className="w-full">
           Attack Village
@@ -928,7 +936,7 @@ function IslandActionModal({
             <div className="grid gap-3 sm:grid-cols-3">
               <InfoTile label="Level" value={slot.barbarianVillage.level.toString()} />
               <InfoTile label="Strength" value={slot.barbarianVillage.enemyStrength.toString()} />
-              <InfoTile label="Loot" value={`${slot.barbarianVillage.rewards.wood} Wood`} />
+              <InfoTile label="Loot" value={formatVillageRewards(slot.barbarianVillage.rewards)} />
             </div>
             <Button
               className="w-full"

@@ -1579,6 +1579,10 @@ export type TrainUnitsResponse = {
 export type PveRewards = {
   wood: number;
   gold: number;
+  marble: number;
+  wine: number;
+  crystal: number;
+  sulfur: number;
 };
 
 export type PveCampSummary = {

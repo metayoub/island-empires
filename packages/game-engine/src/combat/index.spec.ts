@@ -214,7 +214,7 @@ describe('combat calculations', () => {
       campPower: 40,
       victoryLossPercent: 0.1,
       defeatLossPercent: 0.5,
-      rewards: { wood: 150, gold: 75 },
+      rewards: { wood: 150, gold: 75, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
     });
 
     expect(result.victory).toBe(true);
@@ -222,7 +222,7 @@ describe('combat calculations', () => {
     expect(result.campPower).toBe(40);
     expect(result.unitsLost).toEqual({ spearman: 1, archer: 0, swordsman: 0 });
     expect(result.unitsSurvived).toEqual({ spearman: 9, archer: 0, swordsman: 0 });
-    expect(result.rewards).toEqual({ wood: 150, gold: 75 });
+    expect(result.rewards).toEqual({ wood: 150, gold: 75, marble: 0, wine: 0, crystal: 0, sulfur: 0 });
   });
 
   it('resolves naval combat with port and shipyard defense bonuses', () => {
@@ -267,14 +267,14 @@ describe('combat calculations', () => {
       campPower: 120,
       victoryLossPercent: 0.1,
       defeatLossPercent: 0.5,
-      rewards: { wood: 350, gold: 180 },
+      rewards: { wood: 350, gold: 180, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
     });
 
     expect(result.victory).toBe(false);
     expect(result.playerPower).toBe(20);
     expect(result.unitsLost).toEqual({ spearman: 2, archer: 0, swordsman: 0 });
     expect(result.unitsSurvived).toEqual({ spearman: 2, archer: 0, swordsman: 0 });
-    expect(result.rewards).toEqual({ wood: 0, gold: 0 });
+    expect(result.rewards).toEqual({ wood: 0, gold: 0, marble: 0, wine: 0, crystal: 0, sulfur: 0 });
   });
 
   it('validates attack requirements in order', () => {

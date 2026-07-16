@@ -190,10 +190,10 @@ function buildReturnPrisma() {
         unitsSent: { ...EMPTY_LAND_UNITS, spearman: 10 },
         unitsLost: { ...EMPTY_LAND_UNITS, spearman: 1 },
         unitsSurvived: { ...EMPTY_LAND_UNITS, spearman: 9 },
-        rewards: { wood: 150, gold: 75 },
+        rewards: { wood: 500, gold: 250, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
       },
     },
-    originCity: { id: CITY_ID, name: 'New Haven' },
+    originCity: { id: CITY_ID, name: 'New Haven', player: { userId: 'user-1' } },
     destinationCamp: null,
   };
   const resources = {
@@ -209,6 +209,8 @@ function buildReturnPrisma() {
   const unitUpserts: Array<Record<string, unknown>> = [];
   const resourceUpdates: Array<Record<string, unknown>> = [];
   const transactions: Array<Record<string, unknown>> = [];
+  const inventoryTransactions: Array<Record<string, unknown>> = [];
+  const inventoryItems: Array<Record<string, unknown>> = [];
   const reports: Array<Record<string, unknown>> = [];
 
   const tx = {
@@ -244,6 +246,24 @@ function buildReturnPrisma() {
         return Promise.resolve(data);
       }),
     },
+    userInventoryItem: {
+      upsert: jest.fn().mockImplementation(({ where, update, create }) => {
+        const quantity = update?.quantity?.increment ?? create.quantity;
+        const item = {
+          id: `inventory-${create?.itemId ?? where.userId_itemId_sourceId.itemId}`,
+          itemId: create?.itemId ?? where.userId_itemId_sourceId.itemId,
+          quantity,
+        };
+        inventoryItems.push(item);
+        return Promise.resolve(item);
+      }),
+    },
+    inventoryTransaction: {
+      create: jest.fn().mockImplementation(({ data }) => {
+        inventoryTransactions.push(data);
+        return Promise.resolve(data);
+      }),
+    },
     report: {
       create: jest.fn().mockImplementation(({ data }) => {
         reports.push(data);
@@ -256,7 +276,7 @@ function buildReturnPrisma() {
     $transaction: jest.fn().mockImplementation((callback: (tx: unknown) => unknown) => callback(tx)),
   };
 
-  return { prisma, unitUpserts, resourceUpdates, transactions, reports };
+  return { prisma, unitUpserts, resourceUpdates, transactions, inventoryItems, inventoryTransactions, reports };
 }
 
 describe('PveService', () => {
@@ -350,7 +370,7 @@ describe('PveService', () => {
     expect(reports[0]).toMatchObject({
       type: 'pve_battle_victory',
       title: 'Victory!',
-      message: 'Your army defeated Fisher Crown Barbarian Camp (Level 1).',
+      message: 'Your army defeated Fisher Crown Barbarian Camp (Level 1). Lost 1 Spearman. Reward: 500 wood, 250 gold.',
     });
 
     await expect(service.completePveArrival(MOVEMENT_ID)).resolves.toBe(false);
@@ -373,20 +393,24 @@ describe('PveService', () => {
     });
     const payload = movementUpdates[0].payload as {
       units: Record<string, number>;
-      battle: { victory: boolean; rewards: { wood: number; gold: number } };
+      battle: {
+        victory: boolean;
+        rewards: { wood: number; gold: number; marble: number; wine: number; crystal: number; sulfur: number };
+      };
     };
     expect(payload.units).toEqual(EMPTY_LAND_UNITS);
     expect(payload.battle.victory).toBe(false);
-    expect(payload.battle.rewards).toEqual({ wood: 0, gold: 0 });
+    expect(payload.battle.rewards).toEqual({ wood: 0, gold: 0, marble: 0, wine: 0, crystal: 0, sulfur: 0 });
     expect(reports[0]).toMatchObject({
       type: 'pve_battle_defeat',
       title: 'Defeat',
-      message: 'Your army was destroyed by Fisher Crown Barbarian Camp (Level 2).',
+      message: 'Your army was destroyed by Fisher Crown Barbarian Camp (Level 2). Lost 1 Spearman.',
     });
   });
 
-  it('returns survivors and rewards to the origin city', async () => {
-    const { prisma, unitUpserts, resourceUpdates, transactions, reports } = buildReturnPrisma();
+  it('returns survivors and adds rewards to inventory', async () => {
+    const { prisma, unitUpserts, resourceUpdates, transactions, inventoryItems, inventoryTransactions, reports } =
+      buildReturnPrisma();
     const service = await createService(prisma);
 
     await expect(service.completePveReturn(MOVEMENT_ID)).resolves.toBe(true);
@@ -396,14 +420,13 @@ describe('PveService', () => {
       where: { cityId_unitType: { cityId: CITY_ID, unitType: 'spearman' } },
       update: { quantity: { increment: 9 } },
     });
-    expect(resourceUpdates[0]).toEqual({ wood: 900 + 150, gold: 100 + 75 });
-    expect(transactions.map((transaction) => transaction.transactionType)).toEqual([
-      'pve_reward',
-      'pve_reward',
-    ]);
+    expect(resourceUpdates).toHaveLength(0);
+    expect(transactions).toHaveLength(0);
+    expect(inventoryItems.map((item) => item.itemId)).toEqual(['resource_loot_wood', 'resource_loot_gold']);
+    expect(inventoryTransactions.map((transaction) => transaction.quantity)).toEqual([500, 250]);
     expect(reports[0]).toMatchObject({
       type: 'army_returned',
-      message: 'Your army returned to New Haven. It brought back 150 wood and 75 gold.',
+      message: 'Your army returned to New Haven. It added 500 wood, 250 gold to your inventory.',
     });
 
     await expect(service.completePveReturn(MOVEMENT_ID)).resolves.toBe(false);

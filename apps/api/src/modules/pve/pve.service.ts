@@ -2,11 +2,9 @@ import { HttpStatus, Injectable, OnModuleDestroy, Optional } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import {
-  BUILDING_TYPES,
   EVENT_TYPES,
   MAP_CONFIG,
   PVE_CONFIG,
-  STORAGE_CONFIG,
   UNIT_CONFIG,
   getPveCampLevelConfig,
   type PveCampLevelDefinition,
@@ -15,7 +13,6 @@ import {
 import {
   calculateArmySize,
   calculateMapDistance,
-  calculateStorageCapacity,
   calculateTransportTravelTimeSeconds,
   calculateTravelTimeSeconds,
   canAttackPveCamp,
@@ -45,6 +42,14 @@ const UNIT_TYPE_KEYS = (Object.keys(UNIT_CONFIG) as UnitType[]).filter(
   (unitType) => UNIT_CONFIG[unitType].category === 'land',
 );
 const PVE_MOVEMENT_TYPES = [PVE_CONFIG.attackMovementType, PVE_CONFIG.returnMovementType];
+const RESOURCE_LOOT_ITEM_IDS = {
+  wood: 'resource_loot_wood',
+  gold: 'resource_loot_gold',
+  marble: 'resource_loot_marble',
+  wine: 'resource_loot_wine',
+  crystal: 'resource_loot_crystal',
+  sulfur: 'resource_loot_sulfur',
+} as const;
 
 type CampRecord = {
   id: string;
@@ -342,7 +347,7 @@ export class PveService implements OnModuleDestroy {
     const result = await this.prisma.$transaction(async (tx) => {
       const movement = await tx.movement.findUnique({
         where: { id: movementId },
-        include: { originCity: true, destinationCamp: true },
+        include: { originCity: { include: { player: true } }, destinationCamp: true },
       });
 
       if (
@@ -412,10 +417,10 @@ export class PveService implements OnModuleDestroy {
           type: battle.victory ? 'pve_battle_victory' : 'pve_battle_defeat',
           title: battle.victory ? 'Victory!' : 'Defeat',
           message: battle.victory
-            ? `Your army defeated ${camp.name} (Level ${campLevel}).`
+            ? `Your army defeated ${camp.name} (Level ${campLevel}). Lost ${this.formatUnitCounts(battle.unitsLost)}. Reward: ${this.formatResourceCounts(battle.rewards)}.`
             : hasSurvivors
-              ? `Your army was defeated by ${camp.name} (Level ${campLevel}). The survivors are returning home.`
-              : `Your army was destroyed by ${camp.name} (Level ${campLevel}).`,
+              ? `Your army was defeated by ${camp.name} (Level ${campLevel}). Lost ${this.formatUnitCounts(battle.unitsLost)}. The survivors are returning home.`
+              : `Your army was destroyed by ${camp.name} (Level ${campLevel}). Lost ${this.formatUnitCounts(battle.unitsLost)}.`,
           payload: {
             movementId: movement.id,
             campId: camp.id,
@@ -488,10 +493,18 @@ export class PveService implements OnModuleDestroy {
         ),
       );
 
-      const baseRewards = payload.battle?.rewards ?? { wood: 0, gold: 0 };
+      const baseRewards = payload.battle?.rewards ?? {
+        wood: 0,
+        gold: 0,
+        marble: 0,
+        wine: 0,
+        crystal: 0,
+        sulfur: 0,
+      };
       const rewards =
         payload.battle?.victory && this.liveEventsService
           ? {
+              ...baseRewards,
               wood: await this.liveEventsService.applyActiveEventBonus({
                 worldId: movement.worldId,
                 type: EVENT_TYPES.PVE_INVASION,
@@ -504,62 +517,27 @@ export class PveService implements OnModuleDestroy {
               }),
             }
           : baseRewards;
-      const originResources = await tx.cityResource.findUniqueOrThrow({
-        where: { cityId: movement.originCityId },
+      const inventoryRewards = {
+        wood: Math.max(0, Math.floor(rewards.wood)),
+        gold: Math.max(0, Math.floor(rewards.gold)),
+        marble: Math.max(0, Math.floor(rewards.marble)),
+        wine: Math.max(0, Math.floor(rewards.wine)),
+        crystal: Math.max(0, Math.floor(rewards.crystal)),
+        sulfur: Math.max(0, Math.floor(rewards.sulfur)),
+      };
+      await this.grantResourceLoot(tx, {
+        userId: (movement.originCity as unknown as { player: { userId: string } }).player.userId,
+        playerId: movement.playerId,
+        cityId: movement.originCityId,
+        sourceType: 'pve',
+        sourceId: 'pve_loot',
+        transactionSourceId: movement.id,
+        rewards: inventoryRewards,
       });
-      const warehouse = await tx.cityBuilding.findUnique({
-        where: {
-          cityId_buildingType: {
-            cityId: movement.originCityId,
-            buildingType: BUILDING_TYPES.WAREHOUSE,
-          },
-        },
-      });
-      const storageCapacity = calculateStorageCapacity({
-        baseStorage: STORAGE_CONFIG.baseStorage,
-        warehouseLevel: warehouse?.level ?? 0,
-        storagePerWarehouseLevel: STORAGE_CONFIG.storagePerWarehouseLevel,
-      });
-      const delivered = { wood: 0, gold: 0 };
-      const lost = { wood: 0, gold: 0 };
-
-      for (const resourceType of ['wood', 'gold'] as const) {
-        const availableSpace = Math.max(0, storageCapacity - originResources[resourceType]);
-        delivered[resourceType] = Math.min(Math.max(0, rewards[resourceType]), availableSpace);
-        lost[resourceType] = Math.max(0, rewards[resourceType]) - delivered[resourceType];
-      }
-
-      const updatedResources = await tx.cityResource.update({
-        where: { cityId: movement.originCityId },
-        data: {
-          wood: originResources.wood + delivered.wood,
-          gold: originResources.gold + delivered.gold,
-        },
-      });
-
-      await Promise.all(
-        (['wood', 'gold'] as const)
-          .filter((resourceType) => delivered[resourceType] > 0)
-          .map((resourceType) =>
-            tx.resourceTransaction.create({
-              data: {
-                worldId: movement.worldId,
-                cityId: movement.originCityId,
-                playerId: movement.playerId,
-                transactionType: 'pve_reward',
-                resourceType,
-                amount: delivered[resourceType],
-                balanceAfter: updatedResources[resourceType],
-                referenceType: 'movement',
-                referenceId: movement.id,
-              },
-            }),
-          ),
-      );
 
       const rewardText =
-        delivered.wood > 0 || delivered.gold > 0
-          ? ` It brought back ${delivered.wood} wood and ${delivered.gold} gold.`
+        Object.values(inventoryRewards).some((amount) => amount > 0)
+          ? ` It added ${this.formatResourceCounts(inventoryRewards)} to your inventory.`
           : '';
 
       await tx.report.create({
@@ -573,8 +551,9 @@ export class PveService implements OnModuleDestroy {
           payload: {
             movementId: movement.id,
             unitsReturned: survivors,
-            resourcesDelivered: delivered,
-            resourcesLost: lost,
+            resourcesDelivered: inventoryRewards,
+            resourcesAddedToInventory: inventoryRewards,
+            resourcesLost: { wood: 0, gold: 0, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
           },
         },
       });
@@ -764,7 +743,7 @@ export class PveService implements OnModuleDestroy {
     unitsSent: Record<string, number>;
     unitsLost: Record<string, number>;
     unitsSurvived: Record<string, number>;
-    rewards: { wood: number; gold: number };
+    rewards: Record<keyof typeof RESOURCE_LOOT_ITEM_IDS, number>;
   }): PveBattleSummary {
     return {
       victory: battle.victory,
@@ -775,6 +754,72 @@ export class PveService implements OnModuleDestroy {
       unitsSurvived: this.normalizeArmyUnits(battle.unitsSurvived),
       rewards: { ...battle.rewards },
     };
+  }
+
+  private async grantResourceLoot(
+    tx: any,
+    input: {
+      userId: string;
+      playerId: string;
+      cityId: string;
+      sourceType: 'pve';
+      sourceId: string;
+      transactionSourceId: string;
+      rewards: Partial<Record<keyof typeof RESOURCE_LOOT_ITEM_IDS, number>>;
+    },
+  ): Promise<void> {
+    for (const resourceType of Object.keys(RESOURCE_LOOT_ITEM_IDS) as Array<keyof typeof RESOURCE_LOOT_ITEM_IDS>) {
+      const quantity = Math.max(0, Math.floor(input.rewards[resourceType] ?? 0));
+      if (quantity <= 0) continue;
+      const itemId = RESOURCE_LOOT_ITEM_IDS[resourceType];
+      const item = await tx.userInventoryItem.upsert({
+        where: { userId_itemId_sourceId: { userId: input.userId, itemId, sourceId: input.sourceId } },
+        update: {
+          quantity: { increment: quantity },
+          status: 'available',
+          metadata: { lastMovementId: input.transactionSourceId, resourceType },
+        },
+        create: {
+          userId: input.userId,
+          playerId: input.playerId,
+          itemId,
+          quantity,
+          sourceType: input.sourceType,
+          sourceId: input.sourceId,
+          metadata: { movementId: input.transactionSourceId, resourceType },
+        },
+      });
+      await tx.inventoryTransaction.create({
+        data: {
+          userId: input.userId,
+          playerId: input.playerId,
+          itemId,
+          transactionType: 'grant',
+          quantity,
+          balanceAfter: item.quantity,
+          sourceType: input.sourceType,
+          sourceId: input.transactionSourceId,
+          targetType: 'city',
+          targetId: input.cityId,
+          metadata: { resourceType, movementId: input.transactionSourceId },
+        },
+      });
+    }
+  }
+
+  private formatUnitCounts(units: ArmyUnits): string {
+    const text = UNIT_TYPE_KEYS.filter((unitType) => units[unitType] > 0)
+      .map((unitType) => `${units[unitType]} ${UNIT_CONFIG[unitType].name}`)
+      .join(', ');
+    return text || 'none';
+  }
+
+  private formatResourceCounts(resources: Partial<Record<keyof typeof RESOURCE_LOOT_ITEM_IDS, number>>): string {
+    const text = (Object.keys(RESOURCE_LOOT_ITEM_IDS) as Array<keyof typeof RESOURCE_LOOT_ITEM_IDS>)
+      .filter((resourceType) => (resources[resourceType] ?? 0) > 0)
+      .map((resourceType) => `${Math.floor(resources[resourceType] ?? 0)} ${resourceType}`)
+      .join(', ');
+    return text || 'no resources';
   }
 
   private toArmyMovementSummary(movement: {

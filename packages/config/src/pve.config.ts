@@ -41,6 +41,10 @@ export type PveCampLevelDefinition = {
   rewards: {
     wood: number;
     gold: number;
+    marble: number;
+    wine: number;
+    crystal: number;
+    sulfur: number;
   };
 };
 
@@ -51,7 +55,7 @@ export const PVE_CAMP_LEVEL_CONFIG: Record<number, PveCampLevelDefinition> = {
     strengthLabel: 'Low',
     victoryLossPercent: 0.1,
     defeatLossPercent: 0.5,
-    rewards: { wood: 150, gold: 75 },
+    rewards: { wood: 500, gold: 250, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
   },
   2: {
     level: 2,
@@ -59,7 +63,7 @@ export const PVE_CAMP_LEVEL_CONFIG: Record<number, PveCampLevelDefinition> = {
     strengthLabel: 'Medium',
     victoryLossPercent: 0.2,
     defeatLossPercent: 0.6,
-    rewards: { wood: 350, gold: 180 },
+    rewards: { wood: 900, gold: 500, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
   },
   3: {
     level: 3,
@@ -67,7 +71,7 @@ export const PVE_CAMP_LEVEL_CONFIG: Record<number, PveCampLevelDefinition> = {
     strengthLabel: 'High',
     victoryLossPercent: 0.3,
     defeatLossPercent: 0.7,
-    rewards: { wood: 700, gold: 400 },
+    rewards: { wood: 1500, gold: 900, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
   },
 } as const;
 
@@ -86,8 +90,12 @@ export function getPveCampLevelConfig(level: number): PveCampLevelDefinition {
     victoryLossPercent: Math.min(0.45, 0.3 + (normalizedLevel - 3) * 0.003),
     defeatLossPercent: Math.min(0.85, 0.7 + (normalizedLevel - 3) * 0.002),
     rewards: {
-      wood: 700 + (normalizedLevel - 3) * 260,
-      gold: 400 + (normalizedLevel - 3) * 145,
+      wood: Math.floor(1500 + (normalizedLevel - 3) * 1071.5),
+      gold: Math.floor(900 + (normalizedLevel - 3) * 514.3),
+      marble: Math.max(0, Math.floor((normalizedLevel - 3) * 357.2)),
+      sulfur: Math.max(0, Math.floor((normalizedLevel - 7) * 166.7)),
+      crystal: Math.max(0, Math.floor((normalizedLevel - 14) * 220)),
+      wine: Math.max(0, Math.floor((normalizedLevel - 19) * 260)),
     },
   };
 }

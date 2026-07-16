@@ -21,7 +21,7 @@ function buildDetail(overrides: Partial<PveCampDetailResponse> = {}): PveCampDet
       island: { id: 'island-1', name: 'Fisher Crown', x: 388, y: 438 },
       enemyStrength: 40,
       strengthLabel: 'Low',
-      rewards: { wood: 150, gold: 75 },
+      rewards: { wood: 500, gold: 250, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
       distanceFromSelectedCity: 120,
       travelTimeSeconds: 480,
     },
@@ -77,7 +77,7 @@ describe('PveCampDetailPanel', () => {
     expect(await screen.findByText('Barbarian Village North')).toBeInTheDocument();
     expect(screen.getByText('Level 1 Barbarian Village · Fisher Crown')).toBeInTheDocument();
     expect(screen.getByText('40')).toBeInTheDocument();
-    expect(screen.getByText('150 wood · 75 gold')).toBeInTheDocument();
+    expect(screen.getByText('500 wood · 250 gold')).toBeInTheDocument();
     expect(screen.getByText('8m')).toBeInTheDocument();
     expect(screen.getByText('Low threat')).toBeInTheDocument();
   });

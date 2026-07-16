@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ArmyUnits, UnitType } from '@island-empires/shared-types';
+import type { ArmyUnits, PveRewards, UnitType } from '@island-empires/shared-types';
 import { useState } from 'react';
 import {
   Alert,
@@ -19,6 +19,7 @@ const STRENGTH_BADGE_VARIANTS: Record<string, 'success' | 'warning' | 'danger' |
   Medium: 'warning',
   High: 'danger',
 };
+const RESOURCE_KEYS: Array<keyof PveRewards> = ['wood', 'gold', 'marble', 'sulfur', 'crystal', 'wine'];
 
 function formatTravelTime(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
@@ -29,6 +30,13 @@ function formatTravelTime(seconds: number): string {
   }
 
   return remainingSeconds === 0 ? `${minutes}m` : `${minutes}m ${remainingSeconds}s`;
+}
+
+function formatRewards(rewards: PveRewards): string {
+  const text = RESOURCE_KEYS.filter((resourceType) => rewards[resourceType] > 0)
+    .map((resourceType) => `${rewards[resourceType]} ${resourceType}`)
+    .join(' · ');
+  return text || 'No resources';
 }
 
 export function PveCampDetailPanel({ campId, onClose }: { campId: string; onClose?: () => void }) {
@@ -121,9 +129,7 @@ export function PveCampDetailPanel({ campId, onClose }: { campId: string; onClos
         </div>
         <div>
           <p className="font-black text-muted">Possible rewards</p>
-          <p className="font-bold text-text">
-            {camp.rewards.wood} wood · {camp.rewards.gold} gold
-          </p>
+          <p className="font-bold text-text">{formatRewards(camp.rewards)}</p>
         </div>
         <div>
           <p className="font-black text-muted">Island</p>

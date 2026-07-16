@@ -5,6 +5,7 @@ import type {
   CityBlockadeSummary,
   NavalMovementSummary,
   NavalShips,
+  PveRewards,
   PvpMovementSummary,
 } from '@island-empires/shared-types';
 import { Badge, EmptyState, Panel, Timer } from '../../../components/ui';
@@ -20,6 +21,7 @@ const UNIT_LABELS: Array<{ key: keyof ArmyUnits; label: string }> = [
   { key: 'cavalry', label: 'Cavalry' },
   { key: 'catapult', label: 'Catapult' },
 ];
+const RESOURCE_KEYS: Array<keyof PveRewards> = ['wood', 'gold', 'marble', 'sulfur', 'crystal', 'wine'];
 
 function formatUnits(units: ArmyUnits): string {
   const parts = UNIT_LABELS.filter(({ key }) => (units[key] ?? 0) > 0).map(
@@ -27,6 +29,13 @@ function formatUnits(units: ArmyUnits): string {
   );
 
   return parts.length > 0 ? parts.join(', ') : 'No units';
+}
+
+function formatRewards(rewards: PveRewards): string {
+  const parts = RESOURCE_KEYS.filter((resourceType) => rewards[resourceType] > 0).map(
+    (resourceType) => `${rewards[resourceType]} ${resourceType}`,
+  );
+  return parts.length > 0 ? parts.join(', ') : 'No resources';
 }
 
 const SHIP_LABELS: Array<{ key: keyof NavalShips; label: string }> = [
@@ -96,7 +105,7 @@ function BattleOutcome({ movement }: { movement: ArmyMovementSummary }) {
       </div>
       <p className="mt-1 text-muted">
         Losses: {lostText === 'No units' ? 'none' : lostText}
-        {battle.victory ? ` · Loot: ${battle.rewards.wood} wood, ${battle.rewards.gold} gold` : ''}
+        {battle.victory ? ` · Loot: ${formatRewards(battle.rewards)}` : ''}
       </p>
     </div>
   );

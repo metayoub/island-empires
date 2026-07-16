@@ -12,5 +12,5 @@ Early military should compete with city growth for wood and gold without making 
 First iteration notes:
 
 - 6 Spearmen cost 240 wood and 120 gold, a meaningful but recoverable Day 3-4 spend.
-- Level 1 Barbarian camp rewards return 150 wood and 75 gold, so PvE helps active players but does not fully refund early training.
+- Barbarian camp rewards grant resources into inventory, so PvE feels rewarding without overflowing city storage. Level 10+ camps start adding luxury resources for advanced city upgrades.
 - Archer and Swordsman unlocks keep military progression from being instant.

@@ -4,6 +4,13 @@ import { getDebugEconomyDashboard } from './debugEconomy.api';
 
 const RESOURCE_KEYS = ['wood', 'gold', 'marble', 'wine', 'crystal', 'sulfur'] as const;
 
+function formatResources(resources: Partial<Record<(typeof RESOURCE_KEYS)[number], number>>): string {
+  const text = RESOURCE_KEYS.filter((resourceType) => (resources[resourceType] ?? 0) > 0)
+    .map((resourceType) => `${resources[resourceType]}${resourceType.charAt(0)}`)
+    .join('/');
+  return text || '0';
+}
+
 export function DebugEconomyPage() {
   const query = useQuery({
     queryKey: ['debug-economy'],
@@ -127,7 +134,7 @@ export function DebugEconomyPage() {
               <Metric
                 key={camp.level}
                 label={`Level ${camp.level}`}
-                value={`${camp.rewards.wood}w/${camp.rewards.gold}g`}
+                value={formatResources(camp.rewards)}
                 sub={`Power ${camp.enemyStrength}`}
               />
             ))}

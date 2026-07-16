@@ -111,15 +111,69 @@ const PVP_WALL_DEFENSE_PER_LEVEL = 50;
 const PVP_WAREHOUSE_PROTECTED_AMOUNT_PER_LEVEL = 200;
 const PVP_LOOT_PERCENT_PER_RESOURCE = 0.2;
 const PVP_MAX_LOOT_PER_RESOURCE = 500;
+const MAX_PVE_VILLAGE_LEVEL = 50;
+const RESOURCE_LOOT_ITEM_IDS: Record<ResourceKey, string> = {
+  wood: 'resource_loot_wood',
+  gold: 'resource_loot_gold',
+  marble: 'resource_loot_marble',
+  wine: 'resource_loot_wine',
+  crystal: 'resource_loot_crystal',
+  sulfur: 'resource_loot_sulfur',
+};
 
 const PVE_CAMP_LEVELS: Record<
   number,
-  { victoryLossPercent: number; defeatLossPercent: number; rewards: { wood: number; gold: number } }
+  {
+    enemyStrength: number;
+    victoryLossPercent: number;
+    defeatLossPercent: number;
+    rewards: ResourceBalancePayload;
+  }
 > = {
-  1: { victoryLossPercent: 0.1, defeatLossPercent: 0.5, rewards: { wood: 150, gold: 75 } },
-  2: { victoryLossPercent: 0.2, defeatLossPercent: 0.6, rewards: { wood: 350, gold: 180 } },
-  3: { victoryLossPercent: 0.3, defeatLossPercent: 0.7, rewards: { wood: 700, gold: 400 } },
+  1: {
+    enemyStrength: 40,
+    victoryLossPercent: 0.1,
+    defeatLossPercent: 0.5,
+    rewards: { wood: 500, gold: 250, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
+  },
+  2: {
+    enemyStrength: 120,
+    victoryLossPercent: 0.2,
+    defeatLossPercent: 0.6,
+    rewards: { wood: 900, gold: 500, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
+  },
+  3: {
+    enemyStrength: 260,
+    victoryLossPercent: 0.3,
+    defeatLossPercent: 0.7,
+    rewards: { wood: 1500, gold: 900, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
+  },
 };
+
+function getPveCampLevelConfig(level: number): {
+  enemyStrength: number;
+  victoryLossPercent: number;
+  defeatLossPercent: number;
+  rewards: ResourceBalancePayload;
+} {
+  const normalizedLevel = Math.max(1, Math.min(MAX_PVE_VILLAGE_LEVEL, Math.floor(level)));
+  const configured = PVE_CAMP_LEVELS[normalizedLevel];
+  if (configured) return configured;
+
+  return {
+    enemyStrength: 260 + (normalizedLevel - 3) * 115,
+    victoryLossPercent: Math.min(0.45, 0.3 + (normalizedLevel - 3) * 0.003),
+    defeatLossPercent: Math.min(0.85, 0.7 + (normalizedLevel - 3) * 0.002),
+    rewards: {
+      wood: Math.floor(1500 + (normalizedLevel - 3) * 1071.5),
+      gold: Math.floor(900 + (normalizedLevel - 3) * 514.3),
+      marble: Math.max(0, Math.floor((normalizedLevel - 3) * 357.2)),
+      sulfur: Math.max(0, Math.floor((normalizedLevel - 7) * 166.7)),
+      crystal: Math.max(0, Math.floor((normalizedLevel - 14) * 220)),
+      wine: Math.max(0, Math.floor((normalizedLevel - 19) * 260)),
+    },
+  };
+}
 
 function normalizeArmyUnits(units: unknown): ArmyUnits {
   const parsed = (units ?? {}) as Partial<Record<UnitTypeKey, number>>;
@@ -139,7 +193,7 @@ function getPveMovementPayload(payload: unknown): {
   units: ArmyUnits;
   battle?: {
     victory: boolean;
-    rewards: { wood: number; gold: number };
+    rewards: ResourceBalancePayload;
   } & Record<string, unknown>;
 } & Record<string, unknown> {
   const parsed = (payload ?? {}) as Record<string, unknown>;
@@ -159,6 +213,71 @@ function normalizeResources(resources: unknown): ResourceBalancePayload {
       Math.max(0, Math.floor(Number(parsed[resourceType] ?? 0))),
     ]),
   ) as ResourceBalancePayload;
+}
+
+function formatUnitCounts(units: Partial<ArmyUnits>): string {
+  const text = UNIT_TYPE_KEYS.filter((unitType) => (units[unitType] ?? 0) > 0)
+    .map((unitType) => `${units[unitType]} ${UNIT_NAMES[unitType]}`)
+    .join(', ');
+  return text || 'none';
+}
+
+function formatResourceCounts(resources: Partial<Record<ResourceKey, number>>): string {
+  const text = RESOURCE_KEYS.filter((resourceType) => (resources[resourceType] ?? 0) > 0)
+    .map((resourceType) => `${Math.floor(resources[resourceType] ?? 0)} ${resourceType}`)
+    .join(', ');
+  return text || 'no resources';
+}
+
+async function grantResourceLoot(
+  tx: PrismaTransactionClient,
+  input: {
+    userId: string;
+    playerId: string;
+    cityId: string;
+    sourceType: 'pve' | 'pvp';
+    sourceId: string;
+    transactionSourceId: string;
+    rewards: Partial<Record<ResourceKey, number>>;
+  },
+): Promise<void> {
+  for (const resourceType of RESOURCE_KEYS) {
+    const quantity = Math.max(0, Math.floor(input.rewards[resourceType] ?? 0));
+    if (quantity <= 0) continue;
+    const itemId = RESOURCE_LOOT_ITEM_IDS[resourceType];
+    const item = await (tx as any).userInventoryItem.upsert({
+      where: { userId_itemId_sourceId: { userId: input.userId, itemId, sourceId: input.sourceId } },
+      update: {
+        quantity: { increment: quantity },
+        status: 'available',
+        metadata: { lastMovementId: input.transactionSourceId, resourceType },
+      },
+      create: {
+        userId: input.userId,
+        playerId: input.playerId,
+        itemId,
+        quantity,
+        sourceType: input.sourceType,
+        sourceId: input.sourceId,
+        metadata: { movementId: input.transactionSourceId, resourceType },
+      },
+    });
+    await (tx as any).inventoryTransaction.create({
+      data: {
+        userId: input.userId,
+        playerId: input.playerId,
+        itemId,
+        transactionType: 'grant',
+        quantity,
+        balanceAfter: item.quantity,
+        sourceType: input.sourceType,
+        sourceId: input.transactionSourceId,
+        targetType: 'city',
+        targetId: input.cityId,
+        metadata: { resourceType, movementId: input.transactionSourceId },
+      },
+    });
+  }
 }
 
 function getPvpMovementPayload(payload: unknown): {
@@ -648,14 +767,16 @@ export async function completePveAttackArrival(
     }
 
     const camp = movement.destinationCamp;
-    const levelConfig = PVE_CAMP_LEVELS[camp.level] ?? PVE_CAMP_LEVELS[1];
     const payload = getPveMovementPayload(movement.payload);
+    const campLevel = Math.max(1, Math.floor(Number(payload.campLevel ?? camp.level)));
+    const levelConfig = getPveCampLevelConfig(campLevel);
     const unitsSent = payload.units;
     const playerPower = UNIT_TYPE_KEYS.reduce(
       (sum, unitType) => sum + unitsSent[unitType] * UNIT_ATTACK[unitType],
       0,
     );
-    const victory = playerPower >= camp.enemyStrength;
+    const campPower = Math.max(1, Math.floor(Number((payload as any).campPower ?? levelConfig.enemyStrength)));
+    const victory = playerPower >= campPower;
     const lossPercent = victory ? levelConfig.victoryLossPercent : levelConfig.defeatLossPercent;
     const unitsLost = Object.fromEntries(
       UNIT_TYPE_KEYS.map((unitType) => [
@@ -670,11 +791,11 @@ export async function completePveAttackArrival(
     const battle = {
       victory,
       playerPower,
-      campPower: camp.enemyStrength,
+      campPower,
       unitsSent,
       unitsLost,
       unitsSurvived,
-      rewards: victory ? levelConfig.rewards : { wood: 0, gold: 0 },
+      rewards: victory ? levelConfig.rewards : EMPTY_RESOURCE_BALANCE,
     };
 
     const updateResult = await tx.movement.updateMany({
@@ -695,6 +816,23 @@ export async function completePveAttackArrival(
       return false;
     }
 
+    if (victory) {
+      await tx.playerPveCampProgress.upsert({
+        where: { playerId_pveCampId: { playerId: movement.playerId, pveCampId: camp.id } },
+        update: {
+          victoryCount: { increment: 1 },
+          lastVictoryAt: new Date(),
+        },
+        create: {
+          worldId: movement.worldId,
+          playerId: movement.playerId,
+          pveCampId: camp.id,
+          victoryCount: 1,
+          lastVictoryAt: new Date(),
+        },
+      });
+    }
+
     await tx.report.create({
       data: {
         worldId: movement.worldId,
@@ -703,15 +841,15 @@ export async function completePveAttackArrival(
         type: victory ? 'pve_battle_victory' : 'pve_battle_defeat',
         title: victory ? 'Victory!' : 'Defeat',
         message: victory
-          ? `Your army defeated ${camp.name} (Level ${camp.level}).`
+          ? `Your army defeated ${camp.name} (Level ${campLevel}). Lost ${formatUnitCounts(unitsLost)}. Reward: ${formatResourceCounts(battle.rewards)}.`
           : hasSurvivors
-            ? `Your army was defeated by ${camp.name} (Level ${camp.level}). The survivors are returning home.`
-            : `Your army was destroyed by ${camp.name} (Level ${camp.level}).`,
+            ? `Your army was defeated by ${camp.name} (Level ${campLevel}). Lost ${formatUnitCounts(unitsLost)}. The survivors are returning home.`
+            : `Your army was destroyed by ${camp.name} (Level ${campLevel}). Lost ${formatUnitCounts(unitsLost)}.`,
         payload: {
           movementId: movement.id,
           campId: camp.id,
           campName: camp.name,
-          campLevel: camp.level,
+          campLevel,
           battle,
         },
       },
@@ -724,7 +862,7 @@ export async function completePveAttackArrival(
         payload: {
           movementId: movement.id,
           campId: camp.id,
-          campLevel: camp.level,
+          campLevel,
           victory,
           battle,
         },
@@ -742,7 +880,7 @@ export async function completePveReturn(
   return prisma.$transaction(async (tx: PrismaTransactionClient) => {
     const movement = await tx.movement.findUnique({
       where: { id: movementId },
-      include: { originCity: true },
+      include: { originCity: { include: { player: true } } },
     });
 
     if (
@@ -780,59 +918,24 @@ export async function completePveReturn(
     const rewards = {
       wood: Math.max(0, Math.floor(Number(payload.battle?.rewards?.wood ?? 0))),
       gold: Math.max(0, Math.floor(Number(payload.battle?.rewards?.gold ?? 0))),
+      marble: Math.max(0, Math.floor(Number(payload.battle?.rewards?.marble ?? 0))),
+      wine: Math.max(0, Math.floor(Number(payload.battle?.rewards?.wine ?? 0))),
+      crystal: Math.max(0, Math.floor(Number(payload.battle?.rewards?.crystal ?? 0))),
+      sulfur: Math.max(0, Math.floor(Number(payload.battle?.rewards?.sulfur ?? 0))),
     };
-    const originResources = await tx.cityResource.findUniqueOrThrow({
-      where: { cityId: movement.originCityId },
+    await grantResourceLoot(tx, {
+      userId: movement.originCity.player.userId,
+      playerId: movement.playerId,
+      cityId: movement.originCityId,
+      sourceType: 'pve',
+      sourceId: 'pve_loot',
+      transactionSourceId: movement.id,
+      rewards,
     });
-    const warehouse = await tx.cityBuilding.findUnique({
-      where: {
-        cityId_buildingType: {
-          cityId: movement.originCityId,
-          buildingType: 'warehouse',
-        },
-      },
-    });
-    const storageCapacity = BASE_STORAGE + (warehouse?.level ?? 0) * STORAGE_PER_WAREHOUSE_LEVEL;
-    const delivered = { wood: 0, gold: 0 };
-    const lost = { wood: 0, gold: 0 };
-
-    for (const resourceType of ['wood', 'gold'] as const) {
-      const availableSpace = Math.max(0, storageCapacity - originResources[resourceType]);
-      delivered[resourceType] = Math.min(rewards[resourceType], availableSpace);
-      lost[resourceType] = rewards[resourceType] - delivered[resourceType];
-    }
-
-    const updatedResources = await tx.cityResource.update({
-      where: { cityId: movement.originCityId },
-      data: {
-        wood: originResources.wood + delivered.wood,
-        gold: originResources.gold + delivered.gold,
-      },
-    });
-
-    await Promise.all(
-      (['wood', 'gold'] as const)
-        .filter((resourceType) => delivered[resourceType] > 0)
-        .map((resourceType) =>
-          tx.resourceTransaction.create({
-            data: {
-              worldId: movement.worldId,
-              cityId: movement.originCityId,
-              playerId: movement.playerId,
-              transactionType: 'pve_reward',
-              resourceType,
-              amount: delivered[resourceType],
-              balanceAfter: updatedResources[resourceType],
-              referenceType: 'movement',
-              referenceId: movement.id,
-            },
-          }),
-        ),
-    );
 
     const rewardText =
-      delivered.wood > 0 || delivered.gold > 0
-        ? ` It brought back ${delivered.wood} wood and ${delivered.gold} gold.`
+      Object.values(rewards).some((amount) => amount > 0)
+        ? ` It added ${formatResourceCounts(rewards)} to your inventory.`
         : '';
 
     await tx.report.create({
@@ -846,8 +949,9 @@ export async function completePveReturn(
         payload: {
           movementId: movement.id,
           unitsReturned: survivors,
-          resourcesDelivered: delivered,
-          resourcesLost: lost,
+          resourcesDelivered: rewards,
+          resourcesAddedToInventory: rewards,
+          resourcesLost: EMPTY_RESOURCE_BALANCE,
         },
       },
     });
@@ -1004,8 +1108,8 @@ export async function completePvpAttackArrival(
           type: attackerVictory ? 'pvp_attack_victory' : 'pvp_attack_defeat',
           title: attackerVictory ? 'Attack victory' : 'Attack defeated',
           message: attackerVictory
-            ? `Your army defeated ${movement.destinationCity.name} and is returning with loot.`
-            : `Your army was defeated at ${movement.destinationCity.name}.`,
+            ? `Your army defeated ${movement.destinationCity.name}. Lost ${formatUnitCounts(attackerUnitsLost)}. Loot: ${formatResourceCounts(loot)}.`
+            : `Your army was defeated at ${movement.destinationCity.name}. Lost ${formatUnitCounts(attackerUnitsLost)}.`,
           payload: { movementId: movement.id, battle },
         },
       }),
@@ -1046,7 +1150,7 @@ export async function completePvpReturn(prisma: PrismaClient, movementId: string
   return prisma.$transaction(async (tx: PrismaTransactionClient) => {
     const movement = await tx.movement.findUnique({
       where: { id: movementId },
-      include: { originCity: true },
+      include: { originCity: { include: { player: true } } },
     });
 
     if (
@@ -1078,33 +1182,15 @@ export async function completePvpReturn(prisma: PrismaClient, movementId: string
       ),
     );
 
-    const originResources = await tx.cityResource.findUniqueOrThrow({ where: { cityId: movement.originCityId } });
-    const updatedResources = await tx.cityResource.update({
-      where: { cityId: movement.originCityId },
-      data: Object.fromEntries(
-        RESOURCE_KEYS.map((resourceType) => [
-          resourceType,
-          originResources[resourceType] + payload.loot[resourceType],
-        ]),
-      ),
+    await grantResourceLoot(tx, {
+      userId: movement.originCity.player.userId,
+      playerId: movement.playerId,
+      cityId: movement.originCityId,
+      sourceType: 'pvp',
+      sourceId: 'pvp_loot',
+      transactionSourceId: movement.id,
+      rewards: payload.loot,
     });
-    await Promise.all(
-      RESOURCE_KEYS.filter((resourceType) => payload.loot[resourceType] > 0).map((resourceType) =>
-        tx.resourceTransaction.create({
-          data: {
-            worldId: movement.worldId,
-            cityId: movement.originCityId,
-            playerId: movement.playerId,
-            transactionType: 'pvp_loot',
-            resourceType,
-            amount: payload.loot[resourceType],
-            balanceAfter: updatedResources[resourceType],
-            referenceType: 'movement',
-            referenceId: movement.id,
-          },
-        }),
-      ),
-    );
 
     await tx.report.create({
       data: {
@@ -1113,11 +1199,12 @@ export async function completePvpReturn(prisma: PrismaClient, movementId: string
         cityId: movement.originCityId,
         type: 'pvp_army_returned',
         title: 'Raid army returned',
-        message: `Your army returned to ${movement.originCity.name}.`,
+        message: `Your army returned to ${movement.originCity.name}. It added ${formatResourceCounts(payload.loot)} to your inventory.`,
         payload: {
           movementId: movement.id,
           unitsReturned: payload.units,
           resourcesDelivered: payload.loot,
+          resourcesAddedToInventory: payload.loot,
         },
       },
     });

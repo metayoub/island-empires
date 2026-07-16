@@ -9,6 +9,10 @@ export type UnitCombatStats = {
 export type PveRewards = {
   wood: number;
   gold: number;
+  marble: number;
+  wine: number;
+  crystal: number;
+  sulfur: number;
 };
 
 export type PveBattleResult = {
@@ -451,7 +455,9 @@ export function resolvePveBattle(input: {
     unitsSent,
     unitsLost,
     unitsSurvived,
-    rewards: victory ? { ...input.rewards } : { wood: 0, gold: 0 },
+    rewards: victory
+      ? { ...input.rewards }
+      : { wood: 0, gold: 0, marble: 0, wine: 0, crystal: 0, sulfur: 0 },
   };
 }
 

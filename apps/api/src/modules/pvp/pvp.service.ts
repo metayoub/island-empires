@@ -35,6 +35,14 @@ const UNIT_TYPE_KEYS = (Object.keys(UNIT_CONFIG) as UnitType[]).filter(
 );
 const RESOURCE_KEYS: Array<keyof ResourceBalance> = ['wood', 'gold', 'marble', 'wine', 'crystal', 'sulfur'];
 const EMPTY_RESOURCES: ResourceBalance = { wood: 0, gold: 0, marble: 0, wine: 0, crystal: 0, sulfur: 0 };
+const RESOURCE_LOOT_ITEM_IDS: Record<keyof ResourceBalance, string> = {
+  wood: 'resource_loot_wood',
+  gold: 'resource_loot_gold',
+  marble: 'resource_loot_marble',
+  wine: 'resource_loot_wine',
+  crystal: 'resource_loot_crystal',
+  sulfur: 'resource_loot_sulfur',
+};
 const PVP_UNIT_STATS = Object.fromEntries(
   UNIT_TYPE_KEYS.map((unitType) => [
     unitType,
@@ -397,8 +405,8 @@ export class PvpService implements OnModuleDestroy {
             type: battle.attackerVictory ? 'pvp_attack_victory' : 'pvp_attack_defeat',
             title: battle.attackerVictory ? 'Attack victory' : 'Attack defeated',
             message: battle.attackerVictory
-              ? `Your army defeated ${movement.destinationCity.name} and is returning with loot.`
-              : `Your army was defeated at ${movement.destinationCity.name}.`,
+              ? `Your army defeated ${movement.destinationCity.name}. Lost ${this.formatUnitCounts(battle.attackerUnitsLost)}. Loot: ${this.formatResourceCounts(battle.loot)}.`
+              : `Your army was defeated at ${movement.destinationCity.name}. Lost ${this.formatUnitCounts(battle.attackerUnitsLost)}.`,
             payload: { movementId: movement.id, battle: this.toPvpBattleSummary(battle) },
           },
         }),
@@ -444,7 +452,7 @@ export class PvpService implements OnModuleDestroy {
     return this.prisma.$transaction(async (tx) => {
       const movement = await tx.movement.findUnique({
         where: { id: movementId },
-        include: { originCity: true, destinationCity: { include: { player: true } } },
+        include: { originCity: { include: { player: true } }, destinationCity: { include: { player: true } } },
       });
       if (
         !movement ||
@@ -475,28 +483,15 @@ export class PvpService implements OnModuleDestroy {
         ),
       );
 
-      const originResources = await tx.cityResource.findUniqueOrThrow({ where: { cityId: movement.originCityId } });
-      const updatedResources = await tx.cityResource.update({
-        where: { cityId: movement.originCityId },
-        data: Object.fromEntries(RESOURCE_KEYS.map((resourceType) => [resourceType, originResources[resourceType] + payload.loot[resourceType]])),
+      await this.grantResourceLoot(tx, {
+        userId: (movement.originCity as unknown as { player: { userId: string } }).player.userId,
+        playerId: movement.playerId,
+        cityId: movement.originCityId,
+        sourceType: 'pvp',
+        sourceId: 'pvp_loot',
+        transactionSourceId: movement.id,
+        rewards: payload.loot,
       });
-      await Promise.all(
-        RESOURCE_KEYS.filter((resourceType) => payload.loot[resourceType] > 0).map((resourceType) =>
-          tx.resourceTransaction.create({
-            data: {
-              worldId: movement.worldId,
-              cityId: movement.originCityId,
-              playerId: movement.playerId,
-              transactionType: 'pvp_loot',
-              resourceType,
-              amount: payload.loot[resourceType],
-              balanceAfter: updatedResources[resourceType],
-              referenceType: 'movement',
-              referenceId: movement.id,
-            },
-          }),
-        ),
-      );
 
       await tx.report.create({
         data: {
@@ -505,11 +500,12 @@ export class PvpService implements OnModuleDestroy {
           cityId: movement.originCityId,
           type: 'pvp_army_returned',
           title: 'Raid army returned',
-          message: `Your army returned to ${movement.originCity.name}.`,
+          message: `Your army returned to ${movement.originCity.name}. It added ${this.formatResourceCounts(payload.loot)} to your inventory.`,
           payload: {
             movementId: movement.id,
             unitsReturned: payload.units,
             resourcesDelivered: payload.loot,
+            resourcesAddedToInventory: payload.loot,
           },
         },
       });
@@ -751,6 +747,71 @@ export class PvpService implements OnModuleDestroy {
       loot: this.toResources(battle.loot),
       protectedResources: this.toResources(battle.protectedResources),
     };
+  }
+
+  private async grantResourceLoot(
+    tx: any,
+    input: {
+      userId: string;
+      playerId: string;
+      cityId: string;
+      sourceType: 'pvp';
+      sourceId: string;
+      transactionSourceId: string;
+      rewards: ResourceBalance;
+    },
+  ): Promise<void> {
+    for (const resourceType of RESOURCE_KEYS) {
+      const quantity = Math.max(0, Math.floor(input.rewards[resourceType] ?? 0));
+      if (quantity <= 0) continue;
+      const itemId = RESOURCE_LOOT_ITEM_IDS[resourceType];
+      const item = await tx.userInventoryItem.upsert({
+        where: { userId_itemId_sourceId: { userId: input.userId, itemId, sourceId: input.sourceId } },
+        update: {
+          quantity: { increment: quantity },
+          status: 'available',
+          metadata: { lastMovementId: input.transactionSourceId, resourceType },
+        },
+        create: {
+          userId: input.userId,
+          playerId: input.playerId,
+          itemId,
+          quantity,
+          sourceType: input.sourceType,
+          sourceId: input.sourceId,
+          metadata: { movementId: input.transactionSourceId, resourceType },
+        },
+      });
+      await tx.inventoryTransaction.create({
+        data: {
+          userId: input.userId,
+          playerId: input.playerId,
+          itemId,
+          transactionType: 'grant',
+          quantity,
+          balanceAfter: item.quantity,
+          sourceType: input.sourceType,
+          sourceId: input.transactionSourceId,
+          targetType: 'city',
+          targetId: input.cityId,
+          metadata: { resourceType, movementId: input.transactionSourceId },
+        },
+      });
+    }
+  }
+
+  private formatUnitCounts(units: ArmyUnits): string {
+    const text = UNIT_TYPE_KEYS.filter((unitType) => units[unitType] > 0)
+      .map((unitType) => `${units[unitType]} ${UNIT_CONFIG[unitType].name}`)
+      .join(', ');
+    return text || 'none';
+  }
+
+  private formatResourceCounts(resources: Partial<ResourceBalance>): string {
+    const text = RESOURCE_KEYS.filter((resourceType) => (resources[resourceType] ?? 0) > 0)
+      .map((resourceType) => `${Math.floor(resources[resourceType] ?? 0)} ${resourceType}`)
+      .join(', ');
+    return text || 'no resources';
   }
 
   private toPvpMovementSummary(movement: {
