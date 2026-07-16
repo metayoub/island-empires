@@ -13,6 +13,7 @@ import {
 import {
   calculateArmySize,
   calculateMapDistance,
+  calculatePvpLoot,
   calculateTransportTravelTimeSeconds,
   calculateTravelTimeSeconds,
   resolveNavalBattle,
@@ -24,6 +25,7 @@ import type {
   NavalBattleSummary,
   NavalMovementSummary,
   NavalShips,
+  ResourceBalance,
   UnitDefinitionSummary,
   CityBlockadeSummary,
 } from '@island-empires/shared-types';
@@ -43,6 +45,16 @@ const NAVAL_MOVEMENT_TYPES = [
   NAVAL_CONFIG.blockadeReturnMovementType,
 ];
 const EMPTY_SHIPS: NavalShips = { light_ship: 0, ram_ship: 0, fire_ship: 0 };
+const RESOURCE_KEYS: Array<keyof ResourceBalance> = ['wood', 'gold', 'marble', 'wine', 'crystal', 'sulfur'];
+const EMPTY_RESOURCES: ResourceBalance = { wood: 0, gold: 0, marble: 0, wine: 0, crystal: 0, sulfur: 0 };
+const RESOURCE_LOOT_ITEM_IDS: Record<keyof ResourceBalance, string> = {
+  wood: 'resource_loot_wood',
+  gold: 'resource_loot_gold',
+  marble: 'resource_loot_marble',
+  wine: 'resource_loot_wine',
+  crystal: 'resource_loot_crystal',
+  sulfur: 'resource_loot_sulfur',
+};
 const SHIP_STATS = Object.fromEntries(
   SHIP_TYPE_KEYS.map((shipType) => [
     shipType,
@@ -359,8 +371,12 @@ export class NavalService implements OnModuleDestroy {
       if (claim.count === 0) {
         return { completed: false, returning: false };
       }
-      const [defenderFleet, port, shipyard] = await Promise.all([
+      const [defenderFleet, defenderResources, warehouse, port, shipyard] = await Promise.all([
         this.ensureFleet(db, movement.destinationCity),
+        db.cityResource.findUniqueOrThrow({ where: { cityId: movement.destinationCity.id } }),
+        db.cityBuilding.findUnique({
+          where: { cityId_buildingType: { cityId: movement.destinationCity.id, buildingType: BUILDING_TYPES.WAREHOUSE } },
+        }),
         db.cityBuilding.findUnique({
           where: { cityId_buildingType: { cityId: movement.destinationCity.id, buildingType: BUILDING_TYPES.PORT } },
         }),
@@ -379,6 +395,29 @@ export class NavalService implements OnModuleDestroy {
       });
       const battleSummary = this.toBattleSummary(battle);
       const survivors = battleSummary.attackerShipsSurvived;
+      const carryCapacity = battle.attackerVictory
+        ? SHIP_TYPE_KEYS.reduce(
+            (sum, shipType) =>
+              sum +
+              survivors[shipType] *
+                (NAVAL_CONFIG.shipCarryCapacity[shipType as keyof typeof NAVAL_CONFIG.shipCarryCapacity] ?? 0),
+            0,
+          )
+        : 0;
+      const lootResult = battle.attackerVictory
+        ? calculatePvpLoot({
+            availableResources: this.toResources(defenderResources),
+            protectedAmountPerResource: (warehouse?.level ?? 0) * NAVAL_CONFIG.warehouseProtectedAmountPerLevel,
+            lootPercentPerResource: NAVAL_CONFIG.lootPercentPerResource,
+            maxLootPerResource: NAVAL_CONFIG.maxLootPerResource,
+            carryCapacity,
+          })
+        : { loot: EMPTY_RESOURCES, protectedResources: EMPTY_RESOURCES };
+      const battleWithLoot = {
+        ...battleSummary,
+        loot: lootResult.loot,
+        protectedResources: lootResult.protectedResources,
+      };
       const canBlockade =
         payload.establishBlockade &&
         battle.attackerVictory &&
@@ -395,6 +434,17 @@ export class NavalService implements OnModuleDestroy {
           fireShip: battleSummary.defenderShipsSurvived.fire_ship,
         },
       });
+      if (battle.attackerVictory) {
+        await db.cityResource.update({
+          where: { cityId: movement.destinationCity.id },
+          data: Object.fromEntries(
+            RESOURCE_KEYS.map((resourceType) => [
+              resourceType,
+              Math.max(0, defenderResources[resourceType] - lootResult.loot[resourceType]),
+            ]),
+          ),
+        });
+      }
 
       const now = new Date();
       let blockade: any = null;
@@ -425,7 +475,13 @@ export class NavalService implements OnModuleDestroy {
           movementType: canBlockade ? NAVAL_CONFIG.attackMovementType : hasSurvivors ? NAVAL_CONFIG.returnMovementType : NAVAL_CONFIG.attackMovementType,
           status: canBlockade ? 'completed' : hasSurvivors ? 'returning' : 'completed',
           completedAt: canBlockade || !hasSurvivors ? now : null,
-          payload: { ...payload, ships: survivors, battle: battleSummary, blockadeId: blockade?.id ?? null },
+          payload: {
+            ...payload,
+            ships: survivors,
+            battle: battleWithLoot,
+            loot: lootResult.loot,
+            blockadeId: blockade?.id ?? null,
+          },
         },
       });
       await db.navalAttack.update({
@@ -446,7 +502,7 @@ export class NavalService implements OnModuleDestroy {
         },
       });
 
-      await this.createBattleReports(db, movement, battleSummary, blockade);
+      await this.createBattleReports(db, movement, battleWithLoot, blockade);
       await this.analyticsService?.track({
         worldId: movement.worldId,
         playerId: movement.playerId,
@@ -465,7 +521,10 @@ export class NavalService implements OnModuleDestroy {
   async completeNavalReturn(movementId: string): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
       const db = tx as Db;
-      const movement = await db.movement.findUnique({ where: { id: movementId }, include: { originCity: true } });
+      const movement = await db.movement.findUnique({
+        where: { id: movementId },
+        include: { originCity: { include: { player: true } } },
+      });
       if (
         !movement ||
         ![NAVAL_CONFIG.returnMovementType, NAVAL_CONFIG.blockadeReturnMovementType].includes(movement.movementType) ||
@@ -491,6 +550,14 @@ export class NavalService implements OnModuleDestroy {
           fireShip: fleet.fireShip + payload.ships.fire_ship,
         },
       });
+      await this.grantResourceLoot(db, {
+        userId: movement.originCity.player.userId,
+        playerId: movement.playerId,
+        cityId: movement.originCityId,
+        sourceId: 'naval_loot',
+        transactionSourceId: movement.id,
+        rewards: payload.loot,
+      });
       if (payload.navalAttackId) {
         await db.navalAttack.updateMany({
           where: { id: payload.navalAttackId, status: { in: ['returning', 'blockading'] } },
@@ -510,8 +577,14 @@ export class NavalService implements OnModuleDestroy {
           cityId: movement.originCityId,
           type: 'naval_fleet_returned',
           title: 'Fleet returned',
-          message: `Your fleet returned to ${movement.originCity.name}.`,
-          payload: { movementId: movement.id, shipsReturned: payload.ships, blockadeId: payload.blockadeId ?? null },
+          message: `Your fleet returned to ${movement.originCity.name}. It added ${this.formatResourceCounts(payload.loot)} to your inventory.`,
+          payload: {
+            movementId: movement.id,
+            shipsReturned: payload.ships,
+            resourcesDelivered: payload.loot,
+            resourcesAddedToInventory: payload.loot,
+            blockadeId: payload.blockadeId ?? null,
+          },
         },
       });
       return true;
@@ -566,6 +639,7 @@ export class NavalService implements OnModuleDestroy {
                 ram_ship: current.committedRamShip,
                 fire_ship: current.committedFireShip,
               },
+              loot: this.toResources(attackMovement?.payload?.loot ?? EMPTY_RESOURCES),
               returnTravelTimeSeconds,
             },
           },
@@ -778,6 +852,7 @@ export class NavalService implements OnModuleDestroy {
     targetCityId?: string;
     targetCityName?: string;
     ships: NavalShips;
+    loot: ResourceBalance;
     establishBlockade?: boolean;
     battle?: NavalBattleSummary;
     returnTravelTimeSeconds?: number;
@@ -786,6 +861,7 @@ export class NavalService implements OnModuleDestroy {
     return {
       ...parsed,
       ships: this.normalizeShips(parsed.ships),
+      loot: this.toResources(parsed.loot ?? EMPTY_RESOURCES),
     };
   }
 
@@ -802,9 +878,20 @@ export class NavalService implements OnModuleDestroy {
       defenderShipsLost: this.normalizeShips(battle.defenderShipsLost),
       attackerShipsSurvived: this.normalizeShips(battle.attackerShipsSurvived),
       defenderShipsSurvived: this.normalizeShips(battle.defenderShipsSurvived),
+      loot: this.toResources(battle.loot ?? EMPTY_RESOURCES),
+      protectedResources: this.toResources(battle.protectedResources ?? EMPTY_RESOURCES),
       attackerLossRate: battle.attackerLossRate,
       defenderLossRate: battle.defenderLossRate,
     };
+  }
+
+  private toResources(resources: Partial<ResourceBalance> | null | undefined): ResourceBalance {
+    return Object.fromEntries(
+      RESOURCE_KEYS.map((resourceType) => [
+        resourceType,
+        Math.max(0, Math.floor(Number(resources?.[resourceType] ?? 0))),
+      ]),
+    ) as ResourceBalance;
   }
 
   private toMovementSummary(movement: {
@@ -833,6 +920,7 @@ export class NavalService implements OnModuleDestroy {
       arrivalTime: movement.arrivalTime.toISOString(),
       returnArrivalTime: movement.returnArrivalTime?.toISOString() ?? null,
       remainingSeconds: movement.status === 'completed' ? 0 : Math.max(0, Math.ceil(((referenceTime ?? new Date()).getTime() - Date.now()) / 1000)),
+      loot: payload.loot,
       battle: payload.battle ?? null,
       blockadeId: payload.blockadeId ?? null,
     };
@@ -876,6 +964,70 @@ export class NavalService implements OnModuleDestroy {
     };
   }
 
+  private async grantResourceLoot(
+    db: Db,
+    input: {
+      userId: string;
+      playerId: string;
+      cityId: string;
+      sourceId: string;
+      transactionSourceId: string;
+      rewards: ResourceBalance;
+    },
+  ): Promise<void> {
+    for (const resourceType of RESOURCE_KEYS) {
+      const quantity = Math.max(0, Math.floor(input.rewards[resourceType] ?? 0));
+      if (quantity <= 0) continue;
+      const itemId = RESOURCE_LOOT_ITEM_IDS[resourceType];
+      const item = await db.userInventoryItem.upsert({
+        where: { userId_itemId_sourceId: { userId: input.userId, itemId, sourceId: input.sourceId } },
+        update: {
+          quantity: { increment: quantity },
+          status: 'available',
+          metadata: { lastMovementId: input.transactionSourceId, resourceType },
+        },
+        create: {
+          userId: input.userId,
+          playerId: input.playerId,
+          itemId,
+          quantity,
+          sourceType: 'naval',
+          sourceId: input.sourceId,
+          metadata: { movementId: input.transactionSourceId, resourceType },
+        },
+      });
+      await db.inventoryTransaction.create({
+        data: {
+          userId: input.userId,
+          playerId: input.playerId,
+          itemId,
+          transactionType: 'grant',
+          quantity,
+          balanceAfter: item.quantity,
+          sourceType: 'naval',
+          sourceId: input.transactionSourceId,
+          targetType: 'city',
+          targetId: input.cityId,
+          metadata: { resourceType, movementId: input.transactionSourceId },
+        },
+      });
+    }
+  }
+
+  private formatShipCounts(ships: NavalShips): string {
+    const text = SHIP_TYPE_KEYS.filter((shipType) => ships[shipType] > 0)
+      .map((shipType) => `${ships[shipType]} ${UNIT_CONFIG[shipType as UnitType].name}`)
+      .join(', ');
+    return text || 'none';
+  }
+
+  private formatResourceCounts(resources: Partial<ResourceBalance>): string {
+    const text = RESOURCE_KEYS.filter((resourceType) => (resources[resourceType] ?? 0) > 0)
+      .map((resourceType) => `${Math.floor(resources[resourceType] ?? 0)} ${resourceType}`)
+      .join(', ');
+    return text || 'no resources';
+  }
+
   private async hasActiveBlockadeByAttacker(db: Db, attackerPlayerId: string, targetCityId: string): Promise<boolean> {
     const blockade = await db.cityBlockade.findFirst({
       where: { attackerPlayerId, targetCityId, status: 'active', endsAt: { gt: new Date() } },
@@ -898,10 +1050,10 @@ export class NavalService implements OnModuleDestroy {
           type: battle.attackerVictory ? 'naval_attack_victory' : 'naval_attack_defeat',
           title: battle.attackerVictory ? 'Naval victory' : 'Naval defeat',
           message: blockade
-            ? `Your fleet defeated ${movement.destinationCity.name} and established a blockade.`
+            ? `Your fleet defeated ${movement.destinationCity.name}, lost ${this.formatShipCounts(battle.attackerShipsLost)}, seized ${this.formatResourceCounts(battle.loot)}, and established a blockade.`
             : battle.attackerVictory
-              ? `Your fleet defeated ${movement.destinationCity.name} and is returning.`
-              : `Your fleet was defeated at ${movement.destinationCity.name}.`,
+              ? `Your fleet defeated ${movement.destinationCity.name}. Lost ${this.formatShipCounts(battle.attackerShipsLost)}. Loot: ${this.formatResourceCounts(battle.loot)}.`
+              : `Your fleet was defeated at ${movement.destinationCity.name}. Lost ${this.formatShipCounts(battle.attackerShipsLost)}.`,
           payload: { movementId: movement.id, battle, blockadeId: blockade?.id ?? null },
         },
       }),
@@ -913,9 +1065,9 @@ export class NavalService implements OnModuleDestroy {
           type: battle.attackerVictory ? 'naval_defense_defeat' : 'naval_defense_victory',
           title: battle.attackerVictory ? 'Port defeated' : 'Port defended',
           message: blockade
-            ? `${movement.originCity.name} defeated your port fleet and blockaded ${movement.destinationCity.name}.`
+            ? `${movement.originCity.name} defeated your port fleet, seized ${this.formatResourceCounts(battle.loot)}, and blockaded ${movement.destinationCity.name}.`
             : battle.attackerVictory
-              ? `${movement.originCity.name} defeated your port fleet at ${movement.destinationCity.name}.`
+              ? `${movement.originCity.name} defeated your port fleet at ${movement.destinationCity.name} and seized ${this.formatResourceCounts(battle.loot)}.`
               : `${movement.destinationCity.name} defeated an incoming fleet from ${movement.originCity.name}.`,
           payload: { movementId: movement.id, battle, blockadeId: blockade?.id ?? null },
         },

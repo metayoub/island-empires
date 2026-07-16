@@ -1740,6 +1740,8 @@ export type NavalBattleSummary = {
   defenderShipsLost: NavalShips;
   attackerShipsSurvived: NavalShips;
   defenderShipsSurvived: NavalShips;
+  loot: ResourceBalance;
+  protectedResources: ResourceBalance;
   attackerLossRate: number;
   defenderLossRate: number;
 };
@@ -1755,6 +1757,7 @@ export type NavalMovementSummary = {
   arrivalTime: string;
   returnArrivalTime: string | null;
   remainingSeconds: number;
+  loot: ResourceBalance;
   battle: NavalBattleSummary | null;
   blockadeId: string | null;
 };

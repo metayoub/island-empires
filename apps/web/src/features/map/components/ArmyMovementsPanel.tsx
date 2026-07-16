@@ -339,7 +339,8 @@ export function ArmyMovementsPanel() {
                     </p>
                     {movement.battle ? (
                       <p className="mt-1 text-xs text-muted">
-                        {movement.battle.attackerVictory ? 'Victory' : 'Defeat'} · Losses: {formatShips(movement.battle.attackerShipsLost)}
+                        {movement.battle.attackerVictory ? 'Victory' : 'Defeat'} · Losses:{' '}
+                        {formatShips(movement.battle.attackerShipsLost)} · Loot: {formatRewards(movement.loot)}
                       </p>
                     ) : null}
                   </div>

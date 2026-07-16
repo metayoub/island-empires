@@ -16,6 +16,7 @@ export type InventoryItemSource =
   | 'event'
   | 'pve'
   | 'pvp'
+  | 'naval'
   | 'alliance'
   | 'admin'
   | 'supporter_pack'

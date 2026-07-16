@@ -1,16 +1,10 @@
 import { useEffect, useState } from 'react';
+import { formatRemainingTime } from '../../../utils/time';
 
 type BuildingTimerProps = {
   finishesAt: string;
   onComplete?: () => void;
 };
-
-function formatRemaining(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
 
 function getRemainingSeconds(finishesAt: string): number {
   return Math.max(0, Math.ceil((new Date(finishesAt).getTime() - Date.now()) / 1000));
@@ -35,7 +29,7 @@ export function BuildingTimer({ finishesAt, onComplete }: BuildingTimerProps) {
 
   return (
     <span className="font-mono text-sm font-black text-text">
-      {remainingSeconds > 0 ? formatRemaining(remainingSeconds) : 'Completing...'}
+      {remainingSeconds > 0 ? formatRemainingTime(remainingSeconds) : 'Completing...'}
     </span>
   );
 }

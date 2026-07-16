@@ -42,6 +42,8 @@ const UNIT_ART: Partial<Record<UnitType, string>> = {
   swordsman: swordsmanArt,
   cavalry: cavalryArt,
   catapult: catapultArt,
+  light_ship: lightGalleyArt,
+  ram_ship: warGalleyArt,
   light_galley: lightGalleyArt,
   boarding_skiff: boardingSkiffArt,
   ballista_ship: ballistaShipArt,

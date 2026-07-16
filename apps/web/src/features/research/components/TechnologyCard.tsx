@@ -2,6 +2,7 @@ import type { TechnologySummary } from '@island-empires/shared-types';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
+import { formatRemainingTime } from '../../../utils/time';
 
 type TechnologyCardProps = {
   technology: TechnologySummary;
@@ -81,7 +82,7 @@ export function TechnologyCard({
           Cost: <strong className="text-text">{technology.cost}</strong>
         </span>
         <span className="rounded-md border border-border bg-surface/70 px-2 py-1 shadow-inner">
-          Duration: <strong className="text-text">{technology.durationSeconds}s</strong>
+          Duration: <strong className="text-text">{formatRemainingTime(technology.durationSeconds)}</strong>
         </span>
         {technology.requirements.length > 0 ? (
           <span className="rounded-md border border-border bg-surface/70 px-2 py-1 shadow-inner sm:col-span-2">
