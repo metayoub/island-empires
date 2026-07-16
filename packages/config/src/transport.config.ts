@@ -3,7 +3,7 @@ export const TRANSPORT_CONFIG = {
   shipsPerPortLevel: 1,
   shipCapacity: 500,
   capacityPerPortLevel: 500,
-  travelTimeMultiplier: 1,
-  returnTravelTimeMultiplier: 1,
+  travelTimeMultiplier: 0.01,
+  returnTravelTimeMultiplier: 0.01,
   minTravelTimeSeconds: 30,
 } as const;
